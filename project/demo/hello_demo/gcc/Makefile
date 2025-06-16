@@ -48,7 +48,7 @@ DIRS += $(PRJ_BOARD)
 
 SRCS := $(basename $(foreach dir,$(DIRS),$(wildcard $(dir)/*.[csS])))
 
-include ../shared/platforms/XR809/Makefile
+include ../shared/platforms/XR872/Makefile
 
 OBJS := $(addsuffix .o,$(SRCS))
 
