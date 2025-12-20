@@ -27,18 +27,21 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "common/framework/platform_init.h"
-#include <stdio.h>
-#include <stdarg.h>
-#include "kernel/os/os.h"
-#include "shared/src/new_cfg.h"
-#include "shared/src/new_pins.h"
-#include "shared/src/mqtt/new_mqtt.h"
-#include "shared/src/new_common.h"
+#ifndef _MBUF_UTIL_H_
+#define _MBUF_UTIL_H_
 
-int main(void)
-{
-	platform_init();
-	user_main();
-	return 0;
-}
+#include <string.h>
+#include "mbuf_debug.h"
+#if (__CONFIG_MBUF_IMPL_MODE == 0)
+#include "mbuf_0_mem.h"
+#endif
+
+/*
+ * Memory
+ */
+#define MB_MEMCPY(d, s, l)  memcpy(d, s, l)
+#define MB_MEMSET(d, c, l)  memset(d, c, l)
+#define MB_MEMCMP(a, b, l)  memcmp(a, b, l)
+#define MB_MEMMOVE(d, s, n) memmove(d, s, n)
+
+#endif /* _MBUF_UTIL_H_ */

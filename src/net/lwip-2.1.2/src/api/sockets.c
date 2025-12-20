@@ -4193,3 +4193,26 @@ lwip_socket_drop_registered_mld6_memberships(int s)
 #endif /* LWIP_IPV6_MLD */
 
 #endif /* LWIP_SOCKET */
+
+/* Imported from prior SDK modifications during rebase */
+int LWIP_GetMaxSockets()
+{
+    return NUM_SOCKETS;
+}
+
+/* Imported from prior SDK modifications during rebase */
+int LWIP_GetActiveSockets()
+{
+    int i;
+    int r = 0;
+    for(i = 0; i < NUM_SOCKETS; ++i)
+    {
+        if(sockets[i].conn)
+        {
+            r++;
+        }
+    }
+    return r;
+}
+
+

@@ -262,10 +262,10 @@ IMAGE_TOOL := ../$(ROOT_PATH)/tools/$(MKIMAGE)
 # image config file, maybe override by the specific project
 # $(IMAGE_CFG_PATH) is relative to $(IMAGE_PATH)
 IMAGE_CFG_PATH ?= ../$(ROOT_PATH)/project/image_cfg
-IMAGE_CFG ?= $(IMAGE_CFG_PATH)/image.cfg
+IMAGE_CFG ?= $(IMAGE_CFG_PATH)/image_auto_cal.cfg
 
 # image config file generated automatically for creating image, relative to $(IMAGE_PATH)
-PROJECT_IMG_CFG := .image.cfg
+PROJECT_IMG_CFG ?= .image_auto_cal.cfg
 
 # image tool's options to enable/disable OTA
 ifeq ($(__CONFIG_OTA), y)
@@ -328,7 +328,7 @@ ifeq ($(__CONFIG_ROM), y)
 	$(Q)$(CC) -E -P -CC $(CC_SYMBOLS) -o $(ROM_SYMBOL_NAME) - < $(ROM_SYMBOL_FILE)
 endif
 	$(Q)$(CC) -E -P -CC $(CC_SYMBOLS) -o $(PROJECT_LD) - < $(LINKER_SCRIPT) && \
-	$(Q)$(CC) $(LD_FLAGS) -T$(PROJECT_LD) $(LIBRARY_PATHS) -o $@ $(OBJS) $(LIBRARIES)
+	$(CC) $(LD_FLAGS) -T$(PROJECT_LD) $(LIBRARY_PATHS) -o $@ $(OBJS) $(LIBRARIES)
 
 %.bin: %.$(ELF_EXT)
 	$(Q)$(OBJCOPY) -O binary $(OBJCOPY_R_XIP) $(OBJCOPY_R_PSRAM) $(OBJCOPY_R_EXT) $< $@
@@ -393,18 +393,18 @@ ifeq ($(__CONFIG_BIN_COMPRESS), y)
 endif
 	cd $(IMAGE_PATH) && \
 	chmod a+r *.bin && \
-	$(Q)$(CC) -E -P -CC $(CC_SYMBOLS) -o $(PROJECT_IMG_CFG) - < $(IMAGE_CFG) && \
+	$(CC) -E -P -CC $(CC_SYMBOLS) -o $(PROJECT_IMG_CFG) - < $(IMAGE_CFG) && \
 	$(SIGNPACK_GEN_CERT) && \
 	$(IMAGE_TOOL) $(IMAGE_TOOL_OPT) -c $(PROJECT_IMG_CFG) -o $(IMAGE_NAME).img
 
 PHONY += image_xz
 image_xz:
 ifeq ($(__CONFIG_OTA_POLICY), 0x01)
-	cd $(IMAGE_PATH) && \
-	dd if=$(XZ_DEFAULT_IMG) of=$(XZ_DEFAULT_IMG).temp skip=$(BOOTLOADER_LENGTH) bs=1c && \
-	$(Q)$(XZ) $(XZ_DEFAULT_IMG).temp && \
-	mv $(XZ_DEFAULT_IMG).temp.xz image.xz && \
-	rm $(XZ_DEFAULT_IMG).temp && \
+	$(Q)cd $(IMAGE_PATH) && cp $(XZ_DEFAULT_IMG) /tmp/$(XZ_DEFAULT_IMG) && \
+	dd if=/tmp/$(XZ_DEFAULT_IMG) of=/tmp/$(XZ_DEFAULT_IMG).temp skip=$(BOOTLOADER_LENGTH) bs=1c && \
+	$(XZ) /tmp/$(XZ_DEFAULT_IMG).temp && \
+	mv /tmp/$(XZ_DEFAULT_IMG).temp.xz image.xz && \
+	rm /tmp/$(XZ_DEFAULT_IMG).temp && rm /tmp/$(XZ_DEFAULT_IMG) && \
 	$(IMAGE_TOOL) $(IMAGE_TOOL_OPT) -c $(IMAGE_XZ_CFG) -o $(IMAGE_NAME)$(SUFFIX_IMG_XZ).img
 endif
 

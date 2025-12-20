@@ -27,18 +27,39 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "common/framework/platform_init.h"
-#include <stdio.h>
-#include <stdarg.h>
-#include "kernel/os/os.h"
-#include "shared/src/new_cfg.h"
-#include "shared/src/new_pins.h"
-#include "shared/src/mqtt/new_mqtt.h"
-#include "shared/src/new_common.h"
+#ifndef _MBUF_0_MEM_H_
+#define _MBUF_0_MEM_H_
 
-int main(void)
-{
-	platform_init();
-	user_main();
-	return 0;
-}
+#if (__CONFIG_MBUF_IMPL_MODE == 0)
+
+#if (__CONFIG_MBUF_HEAP_MODE == 1)
+#include "sys/sys_heap.h"
+#else
+#include <stdlib.h>
+#endif
+
+#define MB0_MEM_TRACE_SUM       0 /* trace memory usage sum */
+#define MB0_MEM_TRACE_DETAIL    0 /* trace memory usage detail */
+
+#if (MB0_MEM_TRACE_SUM || MB0_MEM_TRACE_DETAIL)
+
+void *mbuf_malloc(size_t size);
+void mbuf_free(void *ptr);
+
+#define MB_MALLOC(l)    mbuf_malloc(l)
+#define MB_FREE(p)      mbuf_free(p)
+
+#else /* (MB0_MEM_TRACE_SUM || MB0_MEM_TRACE_DETAIL) */
+
+#if (__CONFIG_MBUF_HEAP_MODE == 1)
+#define MB_MALLOC(l)    psram_malloc(l)
+#define MB_FREE(p)      psram_free(p)
+#else
+#define MB_MALLOC(l)    malloc(l)
+#define MB_FREE(p)      free(p)
+#endif
+
+#endif /* (MB0_MEM_TRACE_SUM || MB0_MEM_TRACE_DETAIL) */
+
+#endif /* (__CONFIG_MBUF_IMPL_MODE == 0) */
+#endif /* _MBUF_0_MEM_H_ */

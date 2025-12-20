@@ -18,3 +18,4 @@ endif
 
 # enable/disable OTA, default to n
 export __CONFIG_OTA := y
+

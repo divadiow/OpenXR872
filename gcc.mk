@@ -5,7 +5,7 @@
 # ----------------------------------------------------------------------------
 # cross compiler
 # ----------------------------------------------------------------------------
-CC_DIR := ~/tools/gcc-arm-none-eabi-4_9-2015q2/bin
+CC_DIR := ~/gcc-arm/gcc-arm-none-eabi-4_9-2015q2-20150609-linux/gcc-arm-none-eabi-4_9-2015q2/bin
 CC_PREFIX := $(CC_DIR)/arm-none-eabi-
 
 AS      := $(CC_PREFIX)as
@@ -39,7 +39,7 @@ include $(ROOT_PATH)/config.mk
 # ----------------------------------------------------------------------------
 # options
 # ----------------------------------------------------------------------------
-QUIET ?= n
+QUIET ?= y
 OPTIMIZE := y
 MDK_DBG_EN := y
 HARDFP := n
@@ -59,7 +59,7 @@ endif
 ifeq ($(MDK_DBG_EN), y)
   DBG_FLAG := -gdwarf-2
 else
-  DBG_FLAG := -g
+  DBG_FLAG := -g0
 endif
 
 ifeq ($(HARDFP), y)
@@ -80,8 +80,11 @@ endif
 
 CC_FLAGS = $(CPU) -c $(DBG_FLAG) -fno-common -fmessage-length=0 \
 	-fno-exceptions -ffunction-sections -fdata-sections -fomit-frame-pointer \
-	-Wall -Werror -Wpointer-arith -Wno-error=unused-function \
+	-Wall -Wpointer-arith -Wno-error=unused-function \
 	-MMD -MP $(OPTIMIZE_FLAG)
+
+# flag 
+CC_FLAGS += -DPLATFORM_XR872=1
 
 LD_FLAGS = $(CPU) -Wl,--gc-sections --specs=nano.specs \
 	-Wl,-Map=$(basename $@).map,--cref
@@ -200,16 +203,21 @@ PRJ_MAKE_RULES := $(ROOT_PATH)/project/project.mk
 # common rules of compiling objects
 # ----------------------------------------------------------------------------
 %.o: %.asm
+	@echo "compile_asm $<"
 	$(Q)$(CC) $(CPU) $(AS_SYMBOLS) -c -x assembler-with-cpp -o $@ $<
 
 %.o: %.s
+	@echo "compile_s $<"
 	$(Q)$(CC) $(CPU) $(AS_SYMBOLS) -c -x assembler-with-cpp -o $@ $<
 
 %.o: %.S
+	@echo "compile_S $<"
 	$(Q)$(CC) $(CPU) $(AS_SYMBOLS) -c -x assembler-with-cpp -o $@ $<
 
 %.o: %.c
+	@echo "compile_c $<"
 	$(Q)$(CC) $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu99 $(INCLUDE_PATHS) -o $@ $<
 
 %.o: %.cpp
+	@echo "compile_cpp $<"
 	$(Q)$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu++98 -fno-rtti $(INCLUDE_PATHS) -o $@ $<

@@ -63,7 +63,7 @@ extern "C" {
 #define PRJCONF_IMG_ADDR                0x00000000
 
 /* save sysinfo to flash or not */
-#define PRJCONF_SYSINFO_SAVE_TO_FLASH   1
+#define PRJCONF_SYSINFO_SAVE_TO_FLASH   0
 
 #if PRJCONF_SYSINFO_SAVE_TO_FLASH
 
@@ -71,7 +71,7 @@ extern "C" {
 #define PRJCONF_SYSINFO_FLASH           0
 
 /* sysinfo start address */
-#define PRJCONF_SYSINFO_ADDR            ((1024 - 4) * 1024)
+#define PRJCONF_SYSINFO_ADDR            ((1024 - 64) * 1024)
 
 /* sysinfo size */
 #define PRJCONF_SYSINFO_SIZE            (4 * 1024)
@@ -82,10 +82,10 @@ extern "C" {
 #endif /* PRJCONF_SYSINFO_SAVE_TO_FLASH */
 
 /* MAC address source */
-#define PRJCONF_MAC_ADDR_SOURCE         SYSINFO_MAC_ADDR_CHIPID
+#define PRJCONF_MAC_ADDR_SOURCE         SYSINFO_MAC_ADDR_EFUSE
 
 /* watchdog enable/disable */
-#define PRJCONF_WDG_EN                  1
+#define PRJCONF_WDG_EN                  0
 
 /* watchdog timeout value */
 #define PRJCONF_WDG_TIMEOUT             WDG_TIMEOUT_16SEC
