@@ -490,14 +490,18 @@ __weak void platform_cedarx_init(void)
 	CedarxParserRegisterMP3();
 	CedarxParserRegisterWAV();
 	CedarxParserRegisterTS();
+#ifdef __CONFIG_PSRAM
 	CedarxParserRegisterOGG();
+#endif
 
 	CedarxDecoderListInit();
 	CedarxDecoderRegisterAAC();
 	CedarxDecoderRegisterAMR();
 	CedarxDecoderRegisterMP3();
 	CedarxDecoderRegisterWAV();
+#ifdef __CONFIG_PSRAM
 	CedarxDecoderRegisterOGG();
+#endif
 
 	SoundStreamListInit();
 	SoundStreamRegisterCard();
@@ -512,14 +516,18 @@ __weak void platform_cedarx_init(void)
 	CedarxMuxerListInit();
 	CedarxMuxerRegisterAmr();
 	CedarxMuxerRegisterPcm();
+#ifdef __CONFIG_PSRAM
 	CedarxMuxerRegisterMp3();
 	CedarxMuxerRegisterAac();
+#endif
 
 	CedarxEncoderListInit();
 	CedarxEncoderRegisterAmr();
 	CedarxEncoderRegisterPcm();
+#ifdef __CONFIG_PSRAM
 	CedarxEncoderRegisterMp3();
 	CedarxEncoderRegisterAac();
+#endif
 }
 #endif
 

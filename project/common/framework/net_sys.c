@@ -191,6 +191,10 @@ static int _net_sys_start(enum wlan_mode mode)
 
 static int _net_sys_stop(void)
 {
+	if (!g_wlan_netif) {
+		NET_ERR("g_wlan_netif is NULL\n");
+		return -1;
+	}
 	if (g_wlan_netif && wlan_if_get_mode(g_wlan_netif) == WLAN_MODE_HOSTAP) {
 		dhcp_server_stop();
 	}

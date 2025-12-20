@@ -31,6 +31,7 @@
 #include "common/board/board.h"
 #include "pm/pm.h"
 #include "driver/chip/hal_util.h"
+#include "util/xr_logger.h"
 
 /*
  * retarget for standard output/error
@@ -153,6 +154,15 @@ static int stdout_write(const char *buf, int len)
 {
 	if (!g_stdout_enable || g_stdout_uart_id >= UART_NUM || len <= 0) {
 		return 0;
+	}
+
+	if ((buf[0] == __XRLOG_STR0) && (buf[1] == __XRLOG_STR1) &&
+	    (buf[2] == __XRLOG_STR2) && (buf[3] == __XRLOG_STR3)) {
+		buf += 4;
+		len -= 4;
+#ifdef __CONFIG_XRADIO_LOGGER
+		xrlog_write(buf, len);
+#endif
 	}
 
 #ifdef CONFIG_PM

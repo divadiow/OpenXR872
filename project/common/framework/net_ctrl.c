@@ -738,6 +738,7 @@ static const char * const net_ctrl_msg_str[] = {
 	"wlan SAE auth-confirm failed",
 	"wlan p2p wakeup",
 	"wlan keepalive connect lost",
+	"wlan beacon tim hold",
 #ifdef STA_SOFTAP_COEXIST
 	"wlan ap start",
 	"wlan ap stop",
@@ -767,6 +768,7 @@ int net_ctrl_disconnect_ap(void)
 void net_ctrl_msg_process(uint32_t event, uint32_t data, void *arg)
 {
 	uint16_t type = EVENT_SUBTYPE(event);
+	int ret = -1;
 #ifdef STA_SOFTAP_COEXIST
 	struct netif *wlan_netif = NULL;
 	if (type == NET_CTRL_MSG_WLAN_CONNECTED ||
@@ -818,8 +820,10 @@ void net_ctrl_msg_process(uint32_t event, uint32_t data, void *arg)
 #endif
 		break;
 	case NET_CTRL_MSG_WLAN_DISCONNECTED:
-		wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_STATS_CODE, (uint32_t)(&param));
-		NET_DBG("reason code:%d status code:%d\n", param.reason_code, param.status_code);
+		ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_STATS_CODE, (uint32_t)(&param));
+		if (!ret) {
+			NET_DBG("reason code:%d status code:%d\n", param.reason_code, param.status_code);
+		}
 #ifdef STA_SOFTAP_COEXIST
 		if (wlan_netif) {
 			if (netif_is_link_up(wlan_netif)) {
@@ -861,10 +865,12 @@ void net_ctrl_msg_process(uint32_t event, uint32_t data, void *arg)
 	 * For example, when the AP router replies to fail with the status code set to 37,
 	 * it indicates the rejection of the blacklist. */
 	case NET_CTRL_MSG_WLAN_SAE_CONFIRM_FAILED:
-		wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_STATS_CODE, (uint32_t)(&param));
-		NET_DBG("%s reason code:%d status code:%d\n",
+		ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_STATS_CODE, (uint32_t)(&param));
+		if (!ret) {
+			NET_DBG("%s reason code:%d status code:%d\n",
 		        param.status_code != WLAN_STATUS_REQUEST_DECLINED ? "password err!" : "",
 		        param.reason_code, param.status_code);
+		}
 		break;
 	case NET_CTRL_MSG_WLAN_SSID_NOT_FOUND:
 		break;
@@ -877,12 +883,16 @@ void net_ctrl_msg_process(uint32_t event, uint32_t data, void *arg)
 	case NET_CTRL_MSG_WLAN_ASSOC_FAILED:
 	case NET_CTRL_MSG_WLAN_SAE_COMMIT_FAILED:
 	case NET_CTRL_MSG_WLAN_AP_STA_DISCONNECTED:
-		wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_STATS_CODE, (uint32_t)(&param));
-		NET_DBG("reason code:%d status code:%d\n", param.reason_code, param.status_code);
+		ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_STATS_CODE, (uint32_t)(&param));
+		if (!ret) {
+			NET_DBG("reason code:%d status code:%d\n", param.reason_code, param.status_code);
+		}
 		break;
 	case NET_CTRL_MSG_WLAN_P2P_WAKE_UP:
 		break;
 	case NET_CTRL_MSG_WLAN_KEEPALIVE_CONNECT_LOST:
+		break;
+	case NET_CTRL_MSG_WLAN_BCN_TIM_HOLD:
 		break;
 #ifdef STA_SOFTAP_COEXIST
 	case NET_CTRL_MSG_WLAN_SELECT_BSS:

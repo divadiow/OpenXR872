@@ -61,9 +61,13 @@ void net_msg_receiver(uint32_t event, uint32_t data, void *arg)
 		break;
 	case NET_CTRL_MSG_WLAN_DISCONNECTED:
 		g_ap_connected = 0;
+		wlan_sta_bss_flush(0);
 		break;
 	case NET_CTRL_MSG_WLAN_SCAN_SUCCESS:
 	case NET_CTRL_MSG_WLAN_SCAN_FAILED:
+#ifdef STA_SOFTAP_COEXIST
+	case NET_CTRL_MSG_WLAN_SELECT_BSS:
+#endif
 		break;
 	case NET_CTRL_MSG_WLAN_4WAY_HANDSHAKE_FAILED:
 	case NET_CTRL_MSG_WLAN_CONNECT_FAILED:
@@ -261,6 +265,10 @@ void connect_ap_fast(bss_info_t *pbss_info)
 	int i;
 	p = psk_buf;
 
+#ifdef STA_SOFTAP_COEXIST
+	FC_DEBUG("Don't check SoftAP channel here!\n");
+	wlan_sta_set_check_ap_chn_flag(0);
+#endif
 	FC_DEBUG("Set old bss info!\n");
 	if (pbss_info->flags & FLAGS_BSS_USING_WPA3) {
 		wlan_sta_config((uint8_t *)pbss_info->ssid, strlen((char *)pbss_info->ssid),
@@ -274,12 +282,17 @@ void connect_ap_fast(bss_info_t *pbss_info)
 		                (uint8_t *)psk_buf, 0);
 	}
 	FC_DEBUG("Try to connect AP\n");
+	wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_FAST_JOIN, 1);
 	wlan_sta_enable();
 
 	FC_DEBUG("Wait for link up...\n");
 	while (!g_ap_connected) {
 		OS_MSleep(10);
 	}
+	wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_FAST_JOIN, 0);
+#ifdef STA_SOFTAP_COEXIST
+	wlan_sta_set_check_ap_chn_flag(1);
+#endif
 	save_time((uint32_t)HAL_RTC_GetFreeRunTime(), 2);
 	//Fast connect AP success
 }

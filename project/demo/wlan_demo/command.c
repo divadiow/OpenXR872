@@ -213,6 +213,9 @@ static const struct cmd_data g_main_cmds[] = {
 	{ "sysinfo",   cmd_sysinfo_exec, CMD_DESC("system information command") },
 	{ "gpio",      cmd_gpio_exec, CMD_DESC("gpio command") },
 	{ "prcm",      cmd_prcm_exec, CMD_DESC("power reset and clock manager command") },
+#ifdef __CONFIG_XRADIO_LOGGER
+	{ "xrlog",     cmd_xrlog_exec, CMD_DESC("xrlog command") },
+#endif
 	{ "help",      cmd_main_help_exec, CMD_DESC(CMD_HELP_DESC) },
 };
 

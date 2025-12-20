@@ -86,7 +86,7 @@
 #define SDC1_CCM_EnableMClock()         HAL_CCMN_SDC1_EnableMClock()
 #define SDC1_DisableMClock              HAL_CCMN_SDC1_DisableMClock
 #define SDC1_SetMClock                  HAL_CCMN_SDC1_SetMClock
-#elif defined(__CONFIG_CHIP_XR875)
+#elif defined(__CONFIG_CHIP_XR875) || defined(__CONFIG_CHIP_XR872) || defined(__CONFIG_CHIP_XR808)
 #define SDC1_SUPPORT                    1
 #define SDC1_CCM_BusForceReset()        HAL_CCM_BusForcePeriphReset(CCM_BUS_PERIPH_BIT_SDC1)
 #define SDC1_CCM_BusReleaseRest()       HAL_CCM_BusReleasePeriphReset(CCM_BUS_PERIPH_BIT_SDC1)
@@ -124,6 +124,7 @@ extern void SDC0_IRQHandler(void);
 extern  void __mci_clk_prepare_enable(struct mmc_host *host);
 extern void __mci_hold_io(struct mmc_host *host);
 extern void __mci_restore_io(struct mmc_host *host);
+extern void SDC1_IRQHandler(void);
 
 static __inline void __mci_sel_access_mode(struct mmc_host *host, uint32_t access_mode)
 {
@@ -301,7 +302,7 @@ struct mmc_host *_HAL_SDC_Init(struct mmc_host *host)
 	}
 #endif
 
-#ifdef CONFIG_SD_PM
+#ifdef CONFIG_PM
 	SDC_DEV(host->sdc_id)->platform_data = host;
 	pm_register_ops(SDC_DEV(host->sdc_id));
 #endif

@@ -19,7 +19,7 @@ export __CONFIG_XIP := y
 endif
 
 # enable/disable PSRAM, default to n
-export __CONFIG_PSRAM := n
+export __CONFIG_PSRAM := y
 
 # enable/disable OTA, default to n
 export __CONFIG_OTA := y

@@ -75,6 +75,7 @@
 #define MR5                     0x05
 #define MR6                     0x06
 #define MR7                     0x07
+#define MR8                     0x08
 
 /*--------Drive Strength-----------------*/
 /*--------------define by myself----------*/

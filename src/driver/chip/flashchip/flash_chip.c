@@ -80,6 +80,9 @@ extern FlashChipCtor  XT25F32B_FlashChip;
 #ifdef FLASH_XT25F64B
 extern FlashChipCtor  XT25F64B_FlashChip;
 #endif
+#ifdef FLASH_XT25W32B
+extern FlashChipCtor  XT25W32B_FlashChip;
+#endif
 #ifdef FLASH_P25Q80H
 extern FlashChipCtor  P25Q80H_FlashChip;
 #endif
@@ -98,6 +101,9 @@ extern FlashChipCtor  EN25QH64A_FlashChip;
 #ifdef FLASH_XM25QH64A
 extern FlashChipCtor  XM25QH64A_FlashChip;
 #endif
+#ifdef FLASH_GD25Q16X
+extern FlashChipCtor GD25Q16X_FlashChip;
+#endif
 
 FlashChipCtor *flashChipList[] = {
 #ifdef FLASH_DEFAULTCHIP
@@ -111,6 +117,9 @@ FlashChipCtor *flashChipList[] = {
 #endif
 #ifdef FLASH_XT25F64B
 	&XT25F64B_FlashChip,
+#endif
+#ifdef FLASH_XT25W32B
+	&XT25W32B_FlashChip,
 #endif
 #ifdef FLASH_P25Q80H
 	&P25Q80H_FlashChip,
@@ -129,6 +138,9 @@ FlashChipCtor *flashChipList[] = {
 #endif
 #ifdef FLASH_XM25QH64A
 	&XM25QH64A_FlashChip,
+#endif
+#ifdef FLASH_GD25Q16X
+	&GD25Q16X_FlashChip,
 #endif
 };
 

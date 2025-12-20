@@ -2530,6 +2530,15 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
                   s, sock->conn->pcb.tcp->keep_cnt));
       break;
 #endif /* LWIP_TCP_KEEPALIVE */
+
+#if LWIP_XR_IMPL
+    case TCP_PRIO:
+      tcp_setprio(sock->conn->pcb.tcp, *(const u8_t*)optval);
+      LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_PRIO) -> %"U32_F"\n",
+                  s, sock->conn->pcb.tcp->prio));
+      break;
+#endif /* LWIP_XR_IMPL */
+
     default:
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, UNIMPL: optname=0x%x, ..)\n",
                   s, optname));

@@ -51,6 +51,9 @@ ifeq ($(__CONFIG_OS_FREERTOS), y)
 __CONFIG_OS_FREERTOS_VER ?= 80203
 endif
 
+# xradio log net
+__CONFIG_XRADIO_LOGGER ?= n
+
 # lwIP
 #   - 10401: lwIP 1.4.1, support IPv4 stack only
 #   - 20003: lwIP 2.0.3, support dual IPv4/IPv6 stack
@@ -170,8 +173,6 @@ else
   __CONFIG_ROM_FREERTOS ?= n
 endif
 
-__CONFIG_OS_FREERTOS_USE_IDLE_HOOK ?= n
-
 # rom of xz
 ifeq ($(__CONFIG_ROM), y)
   __CONFIG_ROM_XZ ?= y
@@ -187,6 +188,16 @@ __CONFIG_SECURE_BOOT ?= n
 
 # power manager
 __CONFIG_PM ?= y
+ifeq ($(__CONFIG_PM), y)
+__CONFIG_PM_IDLE_SUSPEND ?= n
+else
+__CONFIG_PM_IDLE_SUSPEND := n
+endif
+ifeq ($(__CONFIG_PM_IDLE_SUSPEND), y)
+__CONFIG_OS_FREERTOS_USE_IDLE_HOOK := y
+else
+__CONFIG_OS_FREERTOS_USE_IDLE_HOOK ?= n
+endif
 
 # OTA
 __CONFIG_OTA ?= n
@@ -226,6 +237,12 @@ endif
 else
 __CONFIG_DMAHEAP_PSRAM_SIZE := 0
 endif
+
+# sonic
+# 0X00 : disable
+# 0x01 : sonic_lite
+# 0x02 : sonic
+__CONFIG_SONIC ?= 0x00
 
 # icache and dcache configure, sort by size sum of icache+dcache
 #   - 0x00: icache  0 KB, dcache  0 KB
@@ -345,6 +362,10 @@ endif
 ifeq ($(__CONFIG_OS_FREERTOS), y)
   CONFIG_SYMBOLS += -D__CONFIG_OS_FREERTOS
   CONFIG_SYMBOLS += -D__CONFIG_OS_FREERTOS_VER=$(__CONFIG_OS_FREERTOS_VER)
+endif
+
+ifeq ($(__CONFIG_XRADIO_LOGGER), y)
+  CONFIG_SYMBOLS += -D__CONFIG_XRADIO_LOGGER
 endif
 
 ifeq ($(__CONFIG_LWIP_VER), 10401)
@@ -491,6 +512,10 @@ ifeq ($(__CONFIG_PM), y)
   CONFIG_SYMBOLS += -D__CONFIG_PM
 endif
 
+ifeq ($(__CONFIG_PM_IDLE_SUSPEND), y)
+  CONFIG_SYMBOLS += -D__CONFIG_PM_IDLE_SUSPEND
+endif
+
 ifeq ($(__CONFIG_OTA), y)
   CONFIG_SYMBOLS += -D__CONFIG_OTA
 endif
@@ -520,6 +545,12 @@ endif
 
 ifeq ($(__CONFIG_JPEG_SHARE_64K), y)
   CONFIG_SYMBOLS += -D__CONFIG_JPEG_SHARE_64K
+endif
+
+ifeq ($(__CONFIG_SONIC), 0x01)
+  CONFIG_SYMBOLS += -D__CONFIG_SONIC_LITE
+else ifeq ($(__CONFIG_SONIC), 0x02)
+  CONFIG_SYMBOLS += -D__CONFIG_SONIC
 endif
 
 ifeq ($(__CONFIG_MIX_HEAP_MANAGE), y)

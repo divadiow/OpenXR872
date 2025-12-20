@@ -247,7 +247,9 @@ retry:
 						return;
 					}
 				} else {
+#if (CONSOLE_CHINESE_EN == 0)
 					if (isprint(data)) { /* valid char */
+#endif
 						*rx_buf = data;
 #if CONS_CHECK_OVERFLOW
 						if (rx_buf - CONSOLE_BUF(console, console->rx_buf_idx) >=
@@ -257,11 +259,13 @@ retry:
 #endif
 						++rx_buf;
 						++cnt;
+#if (CONSOLE_CHINESE_EN == 0)
 					} else { /* invalid char */
 						CONS_IT_DBG("rx illegal char 0x%x\n", data);
 						console->rx_data_cnt = 0; /* reset rx buffer */
 						goto retry;
 					}
+#endif
 				}
 			} else {
 				break; /* no more data */

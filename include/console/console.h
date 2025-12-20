@@ -42,6 +42,7 @@ extern "C" {
 #endif
 
 #define CONSOLE_ECHO_EN     1 /* enable/disable console echo */
+#define CONSOLE_CHINESE_EN  0 /* enable/disable chinese characters */
 
 /** @brief type define of console command executing function */
 typedef void (*console_cmd_exec_func)(char *cmd);

@@ -53,6 +53,7 @@ extern "C" {
 #define FLASH_XT25F16B
 #define FLASH_XT25F32B
 #define FLASH_XT25F64B
+#define FLASH_XT25W32B
 
 #define FLASH_XM25QH16B
 
@@ -85,6 +86,7 @@ extern "C" {
 #define FLASH_XM25QH64A
 
 #define FLASH_GD25Q256D
+#define FLASH_GD25Q16X
 
 #endif /* __CONFIG_BOOTLOADER */
 

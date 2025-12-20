@@ -209,7 +209,7 @@ int32_t Psram_Read_Mr(struct psram_chip *chip, uint32_t mreg)
 	case PSRAM_CHIP_OPI_APS64:
 		mrq.cmd.opcode = Mode_Reg_Read;
 		mrq.data.flags = PSRAM_DATA_READ_SHORT;
-		mrq.cmd.addr = MR1;
+		mrq.cmd.addr = mreg;
 		mrq.data.blocks = 2;
 		break;
 	default:
@@ -321,6 +321,7 @@ int32_t psram_set_read_latency(struct psram_chip *chip, uint32_t fixed, uint32_t
 	switch (chip->type) {
 	case PSRAM_CHIP_SQPI:
 		PR_ERR("%s,%d not support now!", __func__, __LINE__);
+		return -1;
 		break;
 	case PSRAM_CHIP_OPI_APS32:
 	case PSRAM_CHIP_OPI_APS64:
@@ -338,28 +339,14 @@ int32_t psram_set_read_latency(struct psram_chip *chip, uint32_t fixed, uint32_t
 
 	PR_DBG("%s,%d read rval:%x\n", __func__, __LINE__, rval);
 	rval &= ~((1 << 5) | (0x7 << 2));
-	if (chip->type == PSRAM_CHIP_OPI_APS64)
-		rval |= (fixed << 5) | ((rlc - 3) << 2);
-	else
-		rval |= (fixed << 5) | (rlc << 2);
+	rval |= (fixed << 5) | (rlc << 2);
 	PR_DBG("%s,%d set rval:%x\n", __func__, __LINE__, rval);
 
 	mrq.data.buff = &rval;
-
-	switch (chip->type) {
-	case PSRAM_CHIP_SQPI:
-		PR_ERR("%s,%d not support now!", __func__, __LINE__);
-		break;
-	case PSRAM_CHIP_OPI_APS32:
-	case PSRAM_CHIP_OPI_APS64:
-		mrq.cmd.opcode = Mode_Reg_Write;
-		mrq.data.blocks = 1;
-		mrq.data.flags = PSRAM_DATA_WRITE_BYTE;
-		mrq.cmd.addr = MR0;
-		break;
-	default:
-		break;
-	}
+	mrq.cmd.opcode = Mode_Reg_Write;
+	mrq.data.blocks = 1;
+	mrq.data.flags = PSRAM_DATA_WRITE_BYTE;
+	mrq.cmd.addr = MR0;
 
 	if (psram_wait_for_req(chip, &mrq) != 0)
 		return -1;
@@ -427,6 +414,7 @@ int32_t psram_set_driver_strength(struct psram_chip *chip, uint32_t drv)
 		mrq.data.blocks = 1;
 		mrq.data.flags = PSRAM_DATA_WRITE_BYTE;
 		mrq.cmd.addr = MR0;
+		mrq.data.buff = &mr_val;
 		break;
 	default:
 		break;
@@ -512,7 +500,7 @@ int32_t psram_enter_dpdown_mode(struct psram_chip *chip)
 int32_t psram_set_write_latency(struct psram_chip *chip, uint32_t p_type, uint32_t wlc)
 {
 	uint8_t rval;
-	uint8_t wlc_tables[5] = {0, 4, 2, 6, 1};
+	//uint8_t wlc_tables[5] = {0, 4, 2, 6, 1};
 	struct psram_request mrq = { { 0 }, { 0 } };
 
 	mrq.data.blksz = 1; /* byte */
@@ -531,7 +519,7 @@ int32_t psram_set_write_latency(struct psram_chip *chip, uint32_t p_type, uint32
 	if (p_type == PSRAM_CHIP_OPI_APS32)
 		rval |= wlc << 6;
 	else if (p_type == PSRAM_CHIP_OPI_APS64)
-		rval |= wlc_tables[wlc - 3] << 5;
+		rval |= wlc << 5;
 
 	mrq.cmd.opcode = Mode_Reg_Write;
 	mrq.data.blocks = 1;
@@ -1071,12 +1059,26 @@ static int psram_suspend(struct soc_device *dev, enum suspend_state_t state)
 	case PM_MODE_STANDBY:
 	case PM_MODE_HIBERNATION:
 		u16PsramCheckSum = psram_data_checksum();
-		psram_set_write_latency(_chip_priv, PSRAM_CHIP_OPI_APS32, 0);
-		HAL_PsramCtrl_Set_SBUS_WR_LATENCY(_chip_priv->ctrl, 0 << 8);
-		HAL_PsramCtrl_ConfigCCMU(96000000);
-		HAL_UDelay(10);
-		HAL_PsramCtrl_Set_DQS_Delay_Cal(96000000);
-		HAL_PsramCtrl_MaxCE_LowCyc(_chip_priv->ctrl, 96000000);
+		HAL_MODIFY_REG(PSRAM_CTRL->MEM_COM_CFG, 0x1, 0);
+		switch (_chip_priv->type) {
+		case PSRAM_CHIP_OPI_APS32:
+			psram_set_write_latency(_chip_priv, PSRAM_CHIP_OPI_APS32, 0);
+			HAL_PsramCtrl_Set_SBUS_WR_LATENCY(_chip_priv->ctrl, 0 << 8);
+			HAL_PsramCtrl_ConfigCCMU(96000000);
+			HAL_UDelay(10);
+			HAL_PsramCtrl_Set_DQS_Delay_Cal(96000000);
+			HAL_PsramCtrl_MaxCE_LowCyc(_chip_priv->ctrl, 96000000);
+			break;
+		case PSRAM_CHIP_OPI_APS64:
+			psram_set_write_latency(_chip_priv, PSRAM_CHIP_OPI_APS64, 0);
+			HAL_PsramCtrl_Set_SBUS_WR_LATENCY(_chip_priv->ctrl, 0 << 8);
+			HAL_UDelay(10);
+			HAL_PsramCtrl_Set_DQS_Delay_Cal(96000000);
+			HAL_PsramCtrl_MaxCE_LowCyc(_chip_priv->ctrl, 96000000);
+			break;
+		default:
+			break;
+		}
 		HAL_MODIFY_REG(PSRAM_CTRL->PSRAM_TIM_CFG, PSRAMC_CS_OUTP_DHCYC_MASK, PSRAMC_CS_OUTP_DHCYC(3));
 		HAL_UDelay(10);
 		psram_enter_hsleep_mode(_chip_priv);
@@ -1107,6 +1109,9 @@ static int psram_resume(struct soc_device *dev, enum suspend_state_t state)
 		#elif (defined __CONFIG_PSRAM_CHIP_OPI64)
 		case PSRAM_CHIP_OPI_APS64:
 			ret = psram_aps64_init(_chip_priv, _chip_priv->ctrl);
+			HAL_PsramCtrl_Set_Address_Field(_chip_priv->ctrl, 0, PSRAM_START_ADDR, PSRAM_END_ADDR, 0);
+			HAL_PsramCtrl_ConfigCCMU(_chip_priv->ctrl->freq);
+			HAL_UDelay(10);
 			break;
 		#endif
 		default:

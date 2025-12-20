@@ -60,7 +60,8 @@ typedef struct {
 	__IO uint32_t WDAY_ALARM_WDAY_EN;   /* offset: 0x44, RTC week day alarm enable register */
 	__IO uint32_t WDAY_ALARM_IRQ_EN;    /* offset: 0x48, RTC week day alarm IRQ enable register */
 	__IO uint32_t WDAY_ALARM_IRQ_STATUS;/* offset: 0x4C, RTC week day alarm IRQ status register */
-	     uint32_t RESERVED3[4];
+	__IO uint32_t ALARM0_WAKEUP_EN;     /* offset: 0x50, RTC alarm 0 wakeup enable register */
+	     uint32_t RESERVED3[3];
 	__IO uint32_t FREERUN_CNT_L;        /* offset: 0x60, Free running counter low register */
 	__IO uint32_t FREERUN_CNT_H;        /* offset: 0x64, Free running counter high register */
 } RTC_T;
@@ -159,6 +160,8 @@ typedef enum {
 /* RTC->WDAY_ALARM_IRQ_STATUS */
 #define RTC_WDAY_ALARM_IRQ_PENDING_BIT  HAL_BIT(0)
 
+/* RTC->ALARM0_WAKEUP_EN */
+#define RTC_ALARM0_WAKEUP_EN            HAL_BIT(0)
 /******************************************************************************/
 
 /** @brief Type define of RTC alarm IRQ callback function */
@@ -217,6 +220,8 @@ void HAL_RTC_SetYYMMDD(uint8_t isLeapYear, uint8_t year, uint8_t month, uint8_t 
 void HAL_RTC_SetDDHHMMSS(RTC_WeekDay wday, uint8_t hour, uint8_t minute, uint8_t second);
 
 void HAL_RTC_SetLeapYear(uint8_t isLeapYear);
+
+void HAL_RTC_SetAlarm0Wakeup(uint8_t isEnAlarm0Wakeup);
 
 /**
  * @brief Get the RTC date, including leaf year flag, year, month and month day

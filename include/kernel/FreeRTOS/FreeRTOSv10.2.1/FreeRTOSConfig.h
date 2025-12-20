@@ -83,7 +83,11 @@ extern uint32_t SystemCoreClock;        /* Global variable of CMSIS */
 #define configUSE_POSIX_ERRNO                                   1 /* enable per task has its unique errno */
 
 /* Constants that describe the hardware and memory usage. */
+#if defined(__CONFIG_MALLOC_TRACE) || defined(__CONFIG_PSRAM_MALLOC_TRACE)
+#define configMINIMAL_STACK_SIZE                                ( ( uint16_t ) 256 )  //change by xradio from 256
+#else
 #define configMINIMAL_STACK_SIZE                                ( ( uint16_t ) 128 )  //change by xradio from 128
+#endif
 #define configMINIMAL_SECURE_STACK_SIZE                         ( 512 )
 #define configMAXIMAL_SECURE_STACK_SIZE                         ( 1024 )
 #define configMAX_TASK_NAME_LEN                                 ( 16 )  // change by xradio from 12

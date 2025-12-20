@@ -1,5 +1,39 @@
 # ChangeLog for XRADIO Skylark SDK
 
+## xradio_skylark_sdk-1.2.3 (20240416)
+
+  * WLAN
+    - Fix the issue that rssi can not larger than -26dbm.
+    - Fix the exception by optimizing the procedure of loading wlan_fw.
+    - Optimize policies to reduce the power consumption in DTIM 10.
+    - Add commands to support the new standard of SRRC certification.
+    - Support setting TCP priority.
+    - Fix the failure to obtain MAC address in keep-alive scenario.
+    - Fix some fast connection issues about wlan cold start.
+    - Fix some bugs about wlan low power.
+    - Fix some connection issues.
+
+  * Cedarx
+    - Support ogg decode.
+    - Support mp3 & aac encode.
+
+  * Audio
+    - Support sonic speed change transposition.
+
+  * Driver
+    - Support XT25W16B and GD25Q16X SPI NOR Flash memory.
+    - Support APS6408L DDR Octal SPI PSRAM.
+
+  * System
+    - Add idle suspend mode.
+    - Support XR808ST2 chip.
+    - Optimize the default configuration of flashc driver in xr872_evb_ai/xr808_evb_io project.
+
+  * Misc
+    - Tools(sdd_editor): Add a field to config frequency offset.
+    - Tools(phoenixMC): Fix the operation failed issue when phoenixMC tries to operate the last 4k data in flash.
+
+
 ## xradio_skylark_sdk-1.2.2 (20230203)
 
   * WLAN

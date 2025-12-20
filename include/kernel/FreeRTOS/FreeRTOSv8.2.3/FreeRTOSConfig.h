@@ -98,7 +98,11 @@ extern uint32_t SystemCoreClock;	/* Global variable of CMSIS */
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
 #define configUSE_TICKLESS_IDLE                 1
 #define configMAX_PRIORITIES                    7
+#if defined(__CONFIG_MALLOC_TRACE) || defined(__CONFIG_PSRAM_MALLOC_TRACE)
+#define configMINIMAL_STACK_SIZE                256 /* 1024-byte */
+#else
 #define configMINIMAL_STACK_SIZE                128 /* 512-byte */
+#endif
 #define configMAX_TASK_NAME_LEN                 16
 #define configIDLE_SHOULD_YIELD                 0 // ?
 #define configUSE_TIME_SLICING                  1
@@ -193,6 +197,14 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define vPortSVCHandler		SVC_Handler
 #define xPortPendSVHandler	PendSV_Handler
 #define xPortSysTickHandler	SysTick_Handler
+#endif
+
+#include "pm/pm_idle_suspend.h"
+#ifdef CONFIG_PM_IDLE_SUSPEND
+#define configPRE_SUPPRESS_TICKS_AND_SLEEP_PROCESSING(x) \
+	do {\
+		x = pm_idle_suspend_suppress_tick_and_sleep(x);\
+	} while(0)
 #endif
 
 /* A header file that defines trace macro can be included here. */

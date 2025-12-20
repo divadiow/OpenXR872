@@ -634,8 +634,24 @@ int
 etharp_get_mac_from_ip(ip_addr_t *ipaddr, struct eth_addr *eth_ret)
 {
   int i;
+  struct netif *netif;
+
   LWIP_ASSERT("ipaddr != NULL", ipaddr != NULL);
   LWIP_ASSERT("eth_ret != NULL", eth_ret != NULL);
+
+  netif = ip_route(ipaddr);
+  if (!ip_addr_netcmp(ipaddr, &(netif->ip_addr), &(netif->netmask)) &&
+      !ip_addr_islinklocal(ipaddr)) {
+      /* interface has default gateway? */
+    if (!ip_addr_isany(&(netif->gw))) {
+      /* send to hardware address of default gateway IP address */
+      ipaddr = (ip_addr_t *)&(netif->gw);
+      /* no default gateway available */
+    } else {
+      /* no route to destination error (default gateway missing) */
+      return 0;
+    }
+  }
 
   for (i = 0;i < ARP_TABLE_SIZE;i++) {
     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE,

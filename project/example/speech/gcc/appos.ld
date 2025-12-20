@@ -16,7 +16,11 @@ MEMORY
     RAM (rwx)   : ORIGIN = 0x00201000, LENGTH = 412K
 #endif
 #elif (defined(__CONFIG_CHIP_XR808))
+#if (defined(__CONFIG_XR808_SUB_TYPE_ST))
+    RAM (rwx)   : ORIGIN = 0x00201000, LENGTH = 412K
+#else
     RAM (rwx)   : ORIGIN = 0x00201000, LENGTH = 252K
+#endif
 #endif
 
 #if (defined(__CONFIG_XIP))
@@ -659,7 +663,7 @@ SECTIONS
     /* Set stack top to end of RAM, and stack limit move down by
      * size of stack_dummy section */
     __StackTop = ORIGIN(RAM) + LENGTH(RAM);
-#if ((!(defined(__CONFIG_JPEG))) && (defined(__CONFIG_CHIP_XR872)))
+#if ((!(defined(__CONFIG_JPEG))) && (defined(__CONFIG_CHIP_XR872) || defined(__CONFIG_XR808_SUB_TYPE_ST)))
     __StackTop += REMAIN_CACHE_SIZE;
 #endif
     _estack = __StackTop;

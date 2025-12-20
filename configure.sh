@@ -10,8 +10,9 @@ echo "*"
 choice_ok=0
 echo "Chip"
 echo "  1. XR872"
-echo "  2. XR808"
-echo -n "choice[1-2]: "
+echo "  2. XR808CT"
+echo "  3. XR808ST"
+echo -n "choice[1-3]: "
 
 read choice
 
@@ -22,6 +23,13 @@ fi
 
 if [[ $choice == 2 ]]; then
 	echo "__CONFIG_CHIP_TYPE ?= xr808" > $conf_file
+	echo "__CONFIG_XR808_SUB_TYPE ?= ct" >> $conf_file
+	choice_ok=1
+fi
+
+if [[ $choice == 3 ]]; then
+	echo "__CONFIG_CHIP_TYPE ?= xr808" > $conf_file
+	echo "__CONFIG_XR808_SUB_TYPE ?= st" >> $conf_file
 	choice_ok=1
 fi
 

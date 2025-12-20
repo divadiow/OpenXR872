@@ -17,6 +17,7 @@ SUBDIRS += libc
 SUBDIRS += image
 SUBDIRS += rom
 SUBDIRS += debug
+SUBDIRS += sys
 
 ifeq ($(__CONFIG_OS_FREERTOS), y)
   ifneq ($(__CONFIG_ROM_FREERTOS), y)
@@ -57,7 +58,7 @@ NET_SUBDIRS += net/sntp
 NET_SUBDIRS += net/udhcp-0.9.8
 NET_SUBDIRS += net/cloud/aliyun
 NET_SUBDIRS += smartlink
-NET_SUBDIRS += sys
+NET_SUBDIRS += wlan
 
 AT_SUBDIRS := atcmd
 
@@ -78,6 +79,7 @@ SUBDIRS += $(AT_SUBDIRS)
 SUBDIRS += cjson
 SUBDIRS += util
 SUBDIRS += jpeg
+SUBDIRS += sonic
 endif
 
 ifeq ($(__CONFIG_CPLUSPLUS), y)

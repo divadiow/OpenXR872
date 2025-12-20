@@ -98,6 +98,7 @@
 
 /* Middleware */
 #include "common/cmd/cmd_fs.h"
+#include "common/cmd/cmd_xrlogger.h"
 #include "common/cmd/cmd_xz.h"
 #include "common/cmd/cmd_console.h"
 #include "common/cmd/cmd_json.h"

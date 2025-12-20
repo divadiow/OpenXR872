@@ -102,10 +102,27 @@ typedef enum wlan_ext_cmd {
 	WLAN_EXT_CMD_SET_AMRR_PARAM,
 	WLAN_EXT_CMD_SET_PS_POLICY,
 	WLAN_EXT_CMD_SET_BSS_LOSS_THOLD,
+	WLAN_EXT_CMD_SET_AUTH_TMO_AND_TRIES,
+	WLAN_EXT_CMD_SET_ASSOC_TMO_AND_TRIES,
 	WLAN_EXT_CMD_SET_BCN_RX_11B_ONLY,
 	WLAN_EXT_CMD_SET_PRE_RX_BCN,
+	WLAN_EXT_CMD_SET_STAY_AWAKE_TMO,
 	WLAN_EXT_CMD_SET_AUTO_POWER,
 	WLAN_EXT_CMD_SET_BCN_LOST_COMP,
+	WLAN_EXT_CMD_SET_BCN_FREQ_OFFS_TIME,
+	WLAN_EXT_CMD_SET_ARP_KPALIVE,
+	WLAN_EXT_CMD_SET_BCN_WITHOUT_DATA,
+	WLAN_EXT_CMD_SET_BCN_TIM_NO_DATA_TMO,
+	WLAN_EXT_CMD_SET_FILTER_TYPE,
+	WLAN_EXT_CMD_SET_FAST_JOIN,
+	WLAN_EXT_CMD_SET_TRIM_TEMP,
+	WLAN_EXT_CMD_SET_SDD_TRIM_TEMP,
+	WLAN_EXT_CMD_GET_SDD_TRIM_TEMP,
+	WLAN_EXT_CMD_SET_XTAL_CAL_PARAMS,
+	WLAN_EXT_CMD_SET_SDD_XTAL_CAL_PARAMS,
+	WLAN_EXT_CMD_GET_SDD_XTAL_CAL_PARAMS,
+	WLAN_EXT_CMD_GET_XTAL_CAL,
+
 } wlan_ext_cmd_t;
 
 /**
@@ -141,7 +158,7 @@ typedef struct wlan_ext_bcn_status {
  * @brief Parameter for WLAN_EXT_CMD_GET_SIGNAL
  */
 typedef struct wlan_ext_signal {
-	int8_t rssi;    /* unit is 0.5db */
+	int16_t rssi;   /* snr, unit is 0.5db */
 	int8_t noise;   /* unit is dbm */
 } wlan_ext_signal_t;
 
@@ -754,16 +771,109 @@ typedef struct wlan_ext_auto_power {
 /**
  * @brief Parameter for WLAN_EXT_CMD_SET_BCN_LOST_COMP
  */
-typedef struct wlan_ext_bcn_lost_comp_set{
+typedef struct wlan_ext_bcn_lost_comp_set {
 	uint8_t Enable;
 	uint8_t DtimLostNum;  /* num of lost bcn to begin compensate */
 	uint8_t CompInterval; /* compensate interval(unit is beacon interval, like 102.4ms) */
 	uint8_t CompCnt;      /* compensate count in one DTIM */
 } wlan_ext_bcn_lost_comp_set_t;
 
+/**
+ * @brief Parameter for WLAN_EXT_CMD_SET_ARP_KPALIVE
+ */
+typedef struct wlan_ext_arp_kpalive_set {
+	uint16_t ArpKeepAlivePeriod; /* in seconds */
+	uint8_t  EncrType; /* ex. WSM_KEY_TYPE_WEP_DEFAULT */
+	uint8_t  Reserved;
+	uint8_t  SenderIpv4IpAddress[4]; /* in uint32_t big endian format */
+	uint8_t  TargetIpv4IpAddress[4];
+	uint8_t  TargetMacAddress[6];
+} wlan_ext_arp_kpalive_set_t;
+
+/**
+ * @brief Parameter for WLAN_EXT_CMD_SET_AUTH/ASSOC_TMO_AND_TRIES
+ */
+typedef struct wlan_ext_mgmt_timeout_and_tries_set {
+	int timeout;
+	uint8_t tries;
+} wlan_ext_mgmt_timeout_and_tries_set_t;
+
+/**
+ * @brief Parameter for WLAN_EXT_CMD_SET_BCN_WITHOUT_DATA
+ */
+#define IPC_BTH_STATUS_OK                       0x00
+#define IPC_BTH_STATUS_BCN_TIM_HOLD             0x01
+typedef struct wlan_ext_chk_bcn_without_data_set {
+	uint8_t enable;
+	uint8_t reserve;
+	uint16_t beacon_count;
+} wlan_ext_chk_bcn_without_data_set_t;
+
+/**
+ * @brief Parameter for WLAN_EXT_CMD_SET_BCN_TIM_NO_DATA_TMO
+ */
+typedef struct wlan_ext_bcn_tim_no_data_tmo_set {
+	uint8_t enable;
+	uint8_t reserve;
+	uint16_t timeout_ms;
+} wlan_ext_bcn_tim_no_data_tmo_set_t;
+
+/**
+ * @brief Parameter for WLAN_EXT_CMD_SET_TRIM_TEMP
+ */
+typedef struct wlan_ext_trim_temp_set {
+	uint32_t trim0_value;
+	uint32_t temp0_value;
+} wlan_ext_trim_temp_set_t;
+
+/**
+ * @brief Parameter for WLAN_SDD_TRIM_TEMP
+ */
+typedef struct wlan_sdd_trim_temp {
+	uint8_t id;
+	uint8_t len;
+	uint16_t reserve;
+	uint32_t Temp0;
+} wlan_sdd_trim_temp_t;
+
+/**
+ * @brief Parameter for WLAN_EXT_CMD_SET_XTAL_CAL_PARAMS
+ */
+typedef struct wlan_ext_xtal_calib_params_set {
+	int64_t param1_value;
+	int64_t param2_value;
+	int64_t param3_value;
+	int64_t param4_value;
+} wlan_ext_xtal_calib_params_set_t;
+
+/**
+ * @brief Parameter for WLAN_SDD_XTAL_CAL_PARAMSgit
+ */
+typedef struct wlan_sdd_xtal_cal_params {
+	uint8_t id;
+	uint8_t len;
+	uint16_t reserve;
+	uint32_t reserve1;
+	int64_t   param1;
+	int64_t   param2;
+	int64_t   param3;
+	int64_t   param4;
+} wlan_sdd_xtal_cal_params_t;
+
+/**
+ * @brief Parameter for WLAN_EXT_CMD_SET_FILTER_TYPE
+ */
+#define FILTER_PACKET_BAR                 (1 << 0) /* filter BAR for AP Router*/
+#define FILTER_PACKET_PING                (1 << 1) /* filter PING for AP Router */
+#define FILTER_PACKET_IPV6                (1 << 2) /* filter IPV6 for Network*/
+#define FILTER_PACKET_ACTION_BA           (1 << 3) /* filter DELBA and ADDBA Request for AP Router*/
+#define FILTER_IPC_WAKEUP_IP_UDP_FRAME    (1 << 4) /* filter IPC UDP WakeUp Frame */
+#define FILTER_PACKET_STP                 (1 << 5) /* filter Spanning Tree Protocol for AP Router */
+
 int wlan_ext_request(struct netif *nif, wlan_ext_cmd_t cmd, uint32_t param);
 int wlan_ext_low_power_param_set_default(uint32_t dtim);
 int wlan_ext_p2p_keepalive_default(struct netif *nif, wlan_ext_p2p_keepalive_param_t *p2p_param);
+int wlan_ext_ap_hiden_ssid(uint32_t enable);
 
 #ifdef __cplusplus
 }

@@ -68,6 +68,16 @@ static int record_start(recorder_base *base, const char *url, const rec_cfg *cfg
 		audioConfig.nSamplerate = 8000;
 		audioConfig.nSamplerBits = 16;
 		audioConfig.nBitrate = 12200;
+	} else if (cfg->type == XRECODER_AUDIO_ENCODE_MP3_TYPE) {
+		audioConfig.nChan = 1;
+		audioConfig.nSamplerate = 16000;
+		audioConfig.nSamplerBits = 16;
+		audioConfig.nBitrate = 32000;
+	} else if (cfg->type == XRECODER_AUDIO_ENCODE_AAC_TYPE) {
+		audioConfig.nChan = 1;
+		audioConfig.nSamplerate = 16000;
+		audioConfig.nSamplerBits = 16;
+		audioConfig.nBitrate = 32000;
 	}
 
 	XRecordSetDataDstUrl(impl->xrecorder, url, NULL, NULL);

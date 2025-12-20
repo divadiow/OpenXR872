@@ -86,6 +86,7 @@ LIBRARIES += -llwip
 LIBRARIES += -lethernetif
 LIBRARIES += -llwip
 LIBRARIES += -lxrsys
+LIBRARIES += -lmbuf
 
 # other libs
 LIBRARIES += -lcjson
@@ -102,6 +103,7 @@ LIBRARIES += -lzbar
 LIBRARIES += -leq
 LIBRARIES += -ldrc
 LIBRARIES += -lopus
+LIBRARIES += -lsonic
 
 endif # __CONFIG_BOOTLOADER
 

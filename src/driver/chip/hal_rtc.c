@@ -38,3 +38,12 @@ void HAL_RTC_SetLeapYear(uint8_t isLeapYear)
 		HAL_CLR_BIT(RTC->YYMMDD, RTC_LEAP_YEAR_BIT);
 	}
 }
+
+void HAL_RTC_SetAlarm0Wakeup(uint8_t isEnAlarm0Wakeup)
+{
+	if (isEnAlarm0Wakeup) {
+		HAL_SET_BIT(RTC->ALARM0_WAKEUP_EN, RTC_ALARM0_WAKEUP_EN);
+	} else {
+		HAL_CLR_BIT(RTC->ALARM0_WAKEUP_EN, RTC_ALARM0_WAKEUP_EN);
+	}
+}

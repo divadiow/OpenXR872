@@ -34,6 +34,8 @@
 #include "net/wlan/wlan_defs.h"
 #include "driver/chip/hal_prcm.h"
 
+#define ENABLE_TEMP_FREQ_CALIB 0 //calibrate frequency offset due to temperature changes
+
 char *rate_tab_name[11] = {
 	"DSSS         1,2",
 	"CCK       5.5,11",
@@ -423,6 +425,284 @@ static enum cmd_status cmd_rf_set_channel_fec(char *cmd)
 	return CMD_STATUS_OK;
 }
 
+#if ENABLE_TEMP_FREQ_CALIB
+enum cmd_status cmd_rf_set_xtal_cal_params_exec(char *cmd)
+{
+	int ret, cnt;
+	float param[4];
+	wlan_ext_xtal_calib_params_set_t param_set;
+	/* get param */
+	cnt = cmd_sscanf(cmd, "%f %f %f %f", &param[0], &param[1], &param[2], &param[3]);
+
+	/* check param */
+	if (cnt != 4) {
+		CMD_ERR("invalid param number %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	param_set.param1_value = (int64_t)(param[0] * 10);
+	param_set.param2_value = (int64_t)(param[1] * 10);
+	param_set.param3_value = (int64_t)(param[2] * 10);
+	param_set.param4_value = (int64_t)(param[3] * 10);
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_XTAL_CAL_PARAMS,
+	                       (uint32_t)(&param_set));
+
+	CMD_LOG(1, "set param1=%.1f, param2=%.1f, param3=%.1f, param4=%.1f\n", param[0], param[1], param[2], param[3]);
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_OK;
+}
+
+enum cmd_status cmd_rf_set_sdd_xtal_cal_params_exec(char *cmd)
+{
+	int ret, cnt;
+	float param[4];
+	wlan_sdd_xtal_cal_params_t param_sdd;
+	/* get param */
+	cnt = cmd_sscanf(cmd, "%f %f %f %f", &param[0], &param[1], &param[2], &param[3]);
+
+	/* check param */
+	if (cnt != 4) {
+		CMD_ERR("invalid param number %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	param_sdd.param1 = (int64_t)(param[0] * 10);
+	param_sdd.param2 = (int64_t)(param[1] * 10);
+	param_sdd.param3 = (int64_t)(param[2] * 10);
+	param_sdd.param4 = (int64_t)(param[3] * 10);
+
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_SDD_XTAL_CAL_PARAMS, (int)(&param_sdd.reserve));
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+	CMD_LOG(1, "set param1=%.1f, param2=%.1f, param3=%.1f, param4=%.1f\n", param[0], param[1], param[2], param[3]);
+
+	return CMD_STATUS_OK;
+}
+
+enum cmd_status cmd_rf_get_sdd_xtal_cal_params_exec(char *cmd)
+{
+	int ret;
+	wlan_sdd_xtal_cal_params_t param_sdd;
+
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_SDD_XTAL_CAL_PARAMS, (int)(&param_sdd.reserve));
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	CMD_LOG(1, "param1 is :%.1f\n", ((float)param_sdd.param1 / 10));
+	CMD_LOG(1, "param2 is :%.1f\n", ((float)param_sdd.param2 / 10));
+	CMD_LOG(1, "param3 is :%.1f\n", ((float)param_sdd.param3 / 10));
+	CMD_LOG(1, "param4 is :%.1f\n", ((float)param_sdd.param4 / 10));
+
+	return CMD_STATUS_OK;
+}
+
+enum cmd_status cmd_rf_set_trim_temp_exec(char *cmd)
+{
+	int ret, cnt;
+	float Temp0;
+	uint32_t Trim0;
+	wlan_ext_trim_temp_set_t param_set;
+
+	/* get param */
+	cnt = cmd_sscanf(cmd, "%d %f", &Trim0, &Temp0);
+
+	/* check param */
+	if (cnt != 2) {
+		CMD_ERR("invalid param number %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	if (Trim0 > 127) {
+		CMD_ERR("invalid Trim0 %d\n", Trim0);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	HAL_MODIFY_REG(PRCM->DCXO_CTRL, PRCM_FREQ_OFFSET_MASK, Trim0 << PRCM_FREQ_OFFSET_SHIFT);
+	CMD_LOG(1, "freq offset is set to %d!\n", Trim0);
+
+	param_set.trim0_value = Trim0;
+	param_set.temp0_value = (uint32_t)(Temp0 * 10);
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_TRIM_TEMP, (uint32_t)(&param_set));
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+	CMD_LOG(1, "temp0 is set to %.1f\n", Temp0);
+
+	return CMD_STATUS_OK;
+}
+
+enum cmd_status cmd_rf_set_sdd_trim_temp_exec(char *cmd)
+{
+	int ret, cnt;
+	float Temp0;
+	uint32_t Trim0;
+	uint16_t Trim0_16;
+	wlan_sdd_trim_temp_t param_sdd;
+
+	/* get param */
+	cnt = cmd_sscanf(cmd, "%d %f", &Trim0, &Temp0);
+
+	/* check param */
+	if (cnt != 2) {
+		CMD_ERR("invalid param number %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+	if (Trim0 > 127) {
+		CMD_ERR("invalid value %d\n", Trim0);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	Trim0_16 = (uint16_t)Trim0;
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_SDD_FREQ_OFFSET, (int)(&Trim0_16));
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	param_sdd.Temp0 = (uint32_t)(Temp0 * 10);
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_SDD_TRIM_TEMP, (int)(&param_sdd.reserve));
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	CMD_LOG(1, "trim0=%d, temp0=%.1f\n", Trim0, Temp0);
+
+	return CMD_STATUS_OK;
+}
+
+enum cmd_status cmd_rf_get_sdd_trim_temp_exec(char *cmd)
+{
+	int ret;
+	uint16_t trim0_value;
+	wlan_sdd_trim_temp_t param_sdd;
+
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_SDD_FREQ_OFFSET, (int)(&trim0_value));
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_SDD_TRIM_TEMP, (int)(&param_sdd.reserve));
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	CMD_LOG(1, "trim0=%d, temp0=%.1f\n", trim0_value, ((float)param_sdd.Temp0 / 10));
+
+	return CMD_STATUS_OK;
+}
+
+enum cmd_status cmd_rf_get_xtal_cal_exec(char *cmd)
+{
+	int ret;
+	uint32_t cali_trim;
+
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_XTAL_CAL,
+	                       (uint32_t)&cali_trim);
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	CMD_LOG(1, "new freq trim=%d\n", cali_trim);
+
+	return CMD_STATUS_OK;
+}
+
+static OS_Timer_t g_auto_xtal_cal_timer;
+static void auto_xtal_cal_timer_callback(void *arg)
+{
+	int ret;
+	uint32_t cali_trim;
+
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_XTAL_CAL,
+	                       (uint32_t)&cali_trim);
+	if (ret) {
+		CMD_ERR("Get freq trim cali error!\n");
+		return;
+	}
+	CMD_LOG(1, "new freq trim=%d\n", cali_trim);
+	HAL_MODIFY_REG(PRCM->DCXO_CTRL, PRCM_FREQ_OFFSET_MASK, cali_trim << PRCM_FREQ_OFFSET_SHIFT);
+	CMD_LOG(1, "Set freq trim to system\n");
+}
+
+enum cmd_status cmd_rf_set_auto_xtal_cal_exec(char *cmd)
+{
+	int cnt;
+	uint32_t period;
+	/* get param */
+	cnt = cmd_sscanf(cmd, "%d", &period);
+	/* check param */
+	if (cnt != 1) {
+		CMD_ERR("invalid param number %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	if (period == 0) {
+		if (OS_TimerIsValid(&g_auto_xtal_cal_timer)) {
+			OS_TimerStop(&g_auto_xtal_cal_timer);
+			OS_TimerDelete(&g_auto_xtal_cal_timer);
+			CMD_LOG(1, "Stoped XTAL TRIM calib timer!\n");
+		}
+		return CMD_STATUS_OK;
+	}
+
+	if (OS_TimerIsActive(&g_auto_xtal_cal_timer)){
+		OS_TimerChangePeriod(&g_auto_xtal_cal_timer, period);
+	} else {
+		OS_TimerSetInvalid(&g_auto_xtal_cal_timer);
+		if (OS_TimerCreate(&g_auto_xtal_cal_timer, OS_TIMER_PERIODIC,
+		                   auto_xtal_cal_timer_callback,
+		                   NULL, period) != OS_OK) {
+			CMD_ERR("timer create failed\n");
+			return -1;
+		}
+		OS_TimerStart(&g_auto_xtal_cal_timer);
+	}
+
+	return CMD_STATUS_OK;
+}
+#endif /*ENABLE_TEMP_FREQ_CALIB*/
+
 /*
  * rf commands
  */
@@ -439,6 +719,16 @@ static const struct cmd_data g_rf_cmds[] = {
 	{ "get_power",            cmd_rf_get_power_exec,     CMD_DESC("get the transmit power") },
 	{ "get_sdd_file",         cmd_rf_get_sdd_file_exec,  CMD_DESC("get the sdd file") },
 	{ "set_channel_fec",      cmd_rf_set_channel_fec,    CMD_DESC("set the channel fec") },
+#if ENABLE_TEMP_FREQ_CALIB
+	{ "set_xtal_cal_params",  cmd_rf_set_xtal_cal_params_exec, CMD_DESC("set the frequency offset calib param") },
+	{ "set_sdd_xtal_cal_params",  cmd_rf_set_sdd_xtal_cal_params_exec, CMD_DESC("set the frequency offset calib param in sdd") },
+	{ "get_sdd_xtal_cal_params",  cmd_rf_get_sdd_xtal_cal_params_exec, CMD_DESC("get the frequency offset calib param in sdd") },
+	{ "set_trim_temp",        cmd_rf_set_trim_temp_exec, CMD_DESC("set the frequency offset trim temperature") },
+	{ "set_sdd_trim_temp",    cmd_rf_set_sdd_trim_temp_exec, CMD_DESC("set the frequency offset trim temp in sdd") },
+	{ "get_sdd_trim_temp",    cmd_rf_get_sdd_trim_temp_exec, CMD_DESC("get the frequency offset trim temp in sdd") },
+	{ "get_xtal_cal",         cmd_rf_get_xtal_cal_exec, CMD_DESC("get the frequency offset trim calib value") },
+	{ "set_auto_xtal_cal",    cmd_rf_set_auto_xtal_cal_exec, CMD_DESC("auto get the frequency offset trim calib value and set it to system") },
+#endif
 	{ "help",                 cmd_rf_help_exec, CMD_DESC(CMD_HELP_DESC) },
 };
 

@@ -703,6 +703,10 @@ extern "C" {
 	#define configUSE_TICKLESS_IDLE 0
 #endif
 
+#ifndef configPRE_SUPPRESS_TICKS_AND_SLEEP_PROCESSING
+	#define configPRE_SUPPRESS_TICKS_AND_SLEEP_PROCESSING( x )
+#endif
+
 #ifndef configPRE_SLEEP_PROCESSING
 	#define configPRE_SLEEP_PROCESSING( x )
 #endif
@@ -821,7 +825,7 @@ V8 if desired. */
 
 /* Set configUSE_TASK_FPU_SUPPORT to 0 to omit floating point support even
 if floating point hardware is otherwise supported by the FreeRTOS port in use.
-This constant is not supported by all FreeRTOS ports that include floating 
+This constant is not supported by all FreeRTOS ports that include floating
 point support. */
 #ifndef configUSE_TASK_FPU_SUPPORT
 	#define configUSE_TASK_FPU_SUPPORT 1

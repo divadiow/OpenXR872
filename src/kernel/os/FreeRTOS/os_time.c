@@ -62,3 +62,16 @@ uint32_t OS_Rand32(void)
 	return (uint32_t)(((*((volatile uint32_t *)0xE000E018)) & 0xffffff) |
 	                  (OS_GetTicks() << 24));
 }
+
+/**
+ * @brief Add ticks to systick
+ * @return OS_Status
+ */
+OS_Status OS_AddTicks(const OS_Time_t xTicksToAdd)
+{
+	if (xTaskAddTick(xTicksToAdd) == pdTRUE) {
+		return OS_OK;
+	}
+	return OS_FAIL;
+}
+

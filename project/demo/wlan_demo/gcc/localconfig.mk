@@ -31,3 +31,7 @@ export __CONFIG_OTA := y
 export __CONFIG_WLAN_STA_LP := n
 
 export __CONFIG_WLAN_STA_SOFTAP_COEXIST := n
+
+export __CONFIG_PM := y
+export __CONFIG_PM_IDLE_SUSPEND := n
+

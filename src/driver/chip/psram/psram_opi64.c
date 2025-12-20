@@ -81,7 +81,7 @@ int32_t psram_aps64_init(struct psram_chip *chip, struct psram_ctrl *ctrl)
 
 	psram_sw_reset(chip, 0);
 
-	id = Psram_Read_Mr(chip, 0);
+	id = Psram_Read_Mr(chip, MR1);
 	if ((id & 0x0f) != 0x0d) { /* Vendor ID: 01101b(APM) */
 		PR_ERR("Get APS64 wrong ID:0x%x\n", id);
 		return -1;
@@ -97,8 +97,9 @@ int32_t psram_aps64_init(struct psram_chip *chip, struct psram_ctrl *ctrl)
 
 	HAL_PsramCtrl_MaxCE_LowCyc(chip->ctrl, chip->freq);
 
-	psram_set_read_latency(chip, 0, 7); /* see TBL Latency */
-	psram_set_write_latency(chip, PSRAM_CHIP_OPI_APS64, 7);
+	psram_set_driver_strength(chip, 1);
+	psram_set_read_latency(chip, 0, 4); /* see TBL Latency */
+	psram_set_write_latency(chip, PSRAM_CHIP_OPI_APS64, 1);
 	HAL_PsramCtrl_Set_SBUS_WR_LATENCY(chip->ctrl, 6);
 	HAL_PsramCtrl_Set_DBUS_WR_LATENCY(chip->ctrl, 6 << 8);
 
@@ -112,7 +113,8 @@ int32_t psram_aps64_init(struct psram_chip *chip, struct psram_ctrl *ctrl)
 	chip->capacity = 8 * 1024 * 1024;
 
 	HAL_UDelay(1000);
-
+	PR_DBG("%#x, %#x, %#x, %#x, %#x, %#x\n", (uint8_t)Psram_Read_Mr(chip, MR0), (uint8_t)Psram_Read_Mr(chip, MR1), (uint8_t)Psram_Read_Mr(chip, MR2),
+	                                         (uint8_t)Psram_Read_Mr(chip, MR3), (uint8_t)Psram_Read_Mr(chip, MR4), (uint8_t)Psram_Read_Mr(chip, MR8));
 	return 0;
 }
 

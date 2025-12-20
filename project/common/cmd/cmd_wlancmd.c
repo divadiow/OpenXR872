@@ -40,6 +40,29 @@
 #define NONCONNECT_SNIFF            0
 #define CMD_WLAN_NETIF              wlan_netif_get(WLAN_MODE_NONE)
 
+static enum cmd_status cmd_wlan_set_fast_join(char *cmd)
+{
+	int ret;
+	int enable_fast_join;
+
+	int cnt = cmd_sscanf(cmd, "e=%d", &enable_fast_join);
+	if (cnt != 1) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_FAST_JOIN, enable_fast_join);
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_OK;
+}
+
 static enum cmd_status cmd_wlan_set_pm_dtim(char *cmd)
 {
 	int ret, cnt;
@@ -293,7 +316,8 @@ static enum cmd_status cmd_wlan_get_cur_signal(char *cmd)
 
 	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_GET_SIGNAL, (int)(&signal));
 
-	CMD_LOG(1, "current rssi:%d, noise:%d\n", signal.rssi, signal.noise);
+	CMD_LOG(1, "current rssi:%d(snr, 0.5db), noise:%d(dbm), level:%d(dbm)\n", signal.rssi,
+	        signal.noise, signal.rssi / 2 + signal.noise);
 
 	if (ret == -2) {
 		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
@@ -402,17 +426,21 @@ static enum cmd_status cmd_wlan_scan_freq(char *cmd)
 	cnt = cmd_sscanf(cmd, "n=%d c=%d %d %d %d %d %d %d %d %d %d %d %d %d %d", &num,
 	                 &chn[0], &chn[1], &chn[2], &chn[3], &chn[4], &chn[5], &chn[6],
 	                 &chn[7], &chn[8], &chn[9], &chn[10], &chn[11], &chn[12], &chn[13]);
-	if (cnt != 15) {
+	if (cnt < 2 || cnt > 15) {
 		CMD_ERR("cnt %d\n", cnt);
 		return CMD_STATUS_INVALID_ARG;
 	}
 
-	if (num > 14) {
+	if (num != cnt - 1) {
 		CMD_ERR("%s: invalid num:%d\n", __func__, num);
 		return CMD_STATUS_ACKED;
 	}
 	for (int i = 0; i < num; i++) {
-		freq[i] = 2407 + 5 * chn[i];
+		if (chn[i] == 14) {
+			freq[i] = 2484;
+		} else {
+			freq[i] = 2407 + 5 * chn[i];
+		}
 	}
 	param.freq_num = num;
 	param.freq_list = freq;
@@ -585,6 +613,71 @@ static enum cmd_status cmd_wlan_set_bss_loss_thold(char *cmd)
 	return CMD_STATUS_OK;
 }
 
+/* eg: net wlan arp_reply_keep_alive p=48 senIp=192.168.51.100 tarIp=192.168.51.1 tarMac=xx:xx:xx:xx:xx:xx */
+static enum cmd_status cmd_wlan_arp_reply_keep_alive(char *cmd)
+{
+	int ret, cnt;
+	uint32_t ArpKeepAlivePeriod;
+	uint32_t sernder_ip[4];
+	uint32_t target_ip[4];
+	uint32_t target_mac[6];
+
+	cnt = cmd_sscanf(cmd, "p=%d senIp=%d.%d.%d.%d tarIp=%d.%d.%d.%d tarMac=%x:%x:%x:%x:%x:%x",
+		&ArpKeepAlivePeriod, &sernder_ip[0], &sernder_ip[1], &sernder_ip[2], &sernder_ip[3],
+		&target_ip[0], &target_ip[1], &target_ip[2], &target_ip[3], &target_mac[0], &target_mac[1],
+		&target_mac[2], &target_mac[3], &target_mac[4], &target_mac[5]);
+	if (cnt != 15) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	wlan_ext_arp_kpalive_set_t param;
+	memset(&param, 0, sizeof(wlan_ext_arp_kpalive_set_t));
+	param.ArpKeepAlivePeriod = (uint16_t)ArpKeepAlivePeriod;
+	for (int i = 0; i < 4; i++) {
+		param.SenderIpv4IpAddress[i] = (uint8_t)sernder_ip[i];
+		param.TargetIpv4IpAddress[i] = (uint8_t)target_ip[i];
+	}
+	for (int i = 0; i < 6; i++) {
+		param.TargetMacAddress[i] = (uint8_t)target_mac[i];
+	}
+	ret = wlan_ext_request(CMD_WLAN_NETIF, WLAN_EXT_CMD_SET_ARP_KPALIVE, (uint32_t)(&param));
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_ACKED;
+}
+
+static enum cmd_status cmd_wlan_set_bcn_freq_offs_time(char *cmd)
+{
+	int ret, cnt;
+	int time;
+
+	cnt = cmd_sscanf(cmd, "t=%d", &time);
+	if (cnt != 1) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	ret = wlan_ext_request(CMD_WLAN_NETIF, WLAN_EXT_CMD_SET_BCN_FREQ_OFFS_TIME, time);
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_OK;
+}
+
 
 static enum cmd_status cmd_wlan_set_bcn_rx_11b_only(char *cmd)
 {
@@ -675,6 +768,30 @@ static enum cmd_status cmd_wlan_set_pre_rx_bcn(char *cmd)
 	return CMD_STATUS_OK;
 }
 
+static enum cmd_status cmd_wlan_set_stay_awake_tmo(char *cmd)
+{
+	int ret, cnt;
+	uint32_t tmo;
+
+	cnt = cmd_sscanf(cmd, "t=%d", &tmo);
+	if (cnt != 1) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	ret = wlan_ext_request(CMD_WLAN_NETIF, WLAN_EXT_CMD_SET_STAY_AWAKE_TMO, tmo);
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_OK;
+}
+
 static enum cmd_status cmd_wlan_set_auto_power(char *cmd)
 {
 	int ret, cnt;
@@ -730,9 +847,199 @@ static enum cmd_status cmd_wlan_set_low_power_param(char *cmd)
 	return CMD_STATUS_OK;
 }
 
+/* eg: net wlan set_auth_tmo_and_tries tmo=100 tries=10 */
+static enum cmd_status cmd_wlan_set_auth_tmo_and_tries(char *cmd)
+{
+	int ret;
+	int cnt;
+	int tmo, tries;
+	wlan_ext_mgmt_timeout_and_tries_set_t param;
+
+	cnt = cmd_sscanf(cmd, "tmo=%d tries=%d", &tmo, &tries);
+	if (cnt != 2) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	cmd_memset(&param, 0, sizeof(wlan_ext_mgmt_timeout_and_tries_set_t));
+	param.timeout = tmo;
+	param.tries = tries;
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_AUTH_TMO_AND_TRIES, (int)(&param));
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_OK;
+}
+
+/* eg: net wlan set_assoc_tmo_and_tries tmo=100 tries=10 */
+static enum cmd_status cmd_wlan_set_assoc_tmo_and_tries(char *cmd)
+{
+	int ret;
+	int cnt;
+	int tmo, tries;
+	wlan_ext_mgmt_timeout_and_tries_set_t param;
+
+	cnt = cmd_sscanf(cmd, "tmo=%d tries=%d", &tmo, &tries);
+	if (cnt != 2) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	cmd_memset(&param, 0, sizeof(wlan_ext_mgmt_timeout_and_tries_set_t));
+	param.timeout = tmo;
+	param.tries = tries;
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_ASSOC_TMO_AND_TRIES, (int)(&param));
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_OK;
+}
+
+static enum cmd_status cmd_wlan_set_chk_bcn_without_data(char *cmd)
+{
+	int ret, cnt;
+	uint32_t enable, count;
+	wlan_ext_chk_bcn_without_data_set_t param;
+
+	cnt = cmd_sscanf(cmd, "e=%d c=%d", &enable, &count);
+
+	if (cnt != 2) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+	param.enable = enable;
+	param.beacon_count = count;
+	ret = wlan_ext_request(CMD_WLAN_NETIF, WLAN_EXT_CMD_SET_BCN_WITHOUT_DATA, (uint32_t)&param);
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_OK;
+}
+
+static enum cmd_status cmd_wlan_set_bcn_tim_no_data_tmo(char *cmd)
+{
+	int ret, cnt;
+	uint32_t enable, tmo;
+	wlan_ext_bcn_tim_no_data_tmo_set_t param;
+
+	cnt = cmd_sscanf(cmd, "e=%d t=%d", &enable, &tmo);
+
+	if (cnt != 2) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+	param.enable = enable;
+	param.timeout_ms = tmo;
+	ret = wlan_ext_request(CMD_WLAN_NETIF, WLAN_EXT_CMD_SET_BCN_TIM_NO_DATA_TMO, (uint32_t)&param);
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+	return CMD_STATUS_OK;
+}
+
+/* eg: net wlan set_filter_type ft=0x1 :FW filter AP BAR frame after Host standby
+       net wlan set_filter_type ft=0x2 :FW filter AP PING frame after Host standby
+       net wlan set_filter_type ft=0x3 :FW filter AP BAR frame and Ping after Host standby
+       net wlan set_filter_type ft=0x0 :disable filter */
+static enum cmd_status cmd_wlan_set_filter_type(char *cmd)
+{
+	int ret;
+	uint32_t type;
+	int cnt;
+
+	cnt = cmd_sscanf(cmd, "ft=0x%x", &type);
+	if (cnt != 1) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	ret = wlan_ext_request(CMD_WLAN_NETIF, WLAN_EXT_CMD_SET_FILTER_TYPE, type);
+	CMD_LOG(1, "set_filter_type:%x\n", type);
+
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+	return CMD_STATUS_OK;
+}
+
+static enum cmd_status cmd_wlan_set_hidden_ap(char *cmd)
+{
+	int cnt, enable, ret;
+
+	cnt = cmd_sscanf(cmd, "e=%d", &enable);
+	if (cnt != 1) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	ret = wlan_ext_ap_hiden_ssid(enable);
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+	return CMD_STATUS_OK;
+}
+
+static enum cmd_status cmd_wlan_set_mixrate(char *cmd)
+{
+	int ret, cnt;
+	int enable;
+
+	cnt = cmd_sscanf(cmd, "e=%d", &enable);
+	if (cnt != 1) {
+		CMD_ERR("cnt %d\n", cnt);
+		return CMD_STATUS_INVALID_ARG;
+	}
+
+	ret = wlan_ext_request(g_wlan_netif, WLAN_EXT_CMD_SET_MIXRATE, enable);
+
+	if (ret == -2) {
+		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	} else if (ret == -1) {
+		CMD_ERR("%s: command '%s' exec failed\n", __func__, cmd);
+		return CMD_STATUS_ACKED;
+	}
+
+	return CMD_STATUS_OK;
+}
+
 #ifdef __CONFIG_WLAN_STA_LP
 #include <lwip/sockets.h>
 #include "netif/etharp.h"
+#include <lwip/tcp.h>
 static enum cmd_status cmd_wlan_set_auto_scan(char *cmd)
 {
 
@@ -1019,7 +1326,10 @@ static enum cmd_status cmd_wlan_client_start(char *cmd)
 {
 	int cnt, ret;
 	uint8_t str_ip_addr[100];
-
+#ifdef __CONFIG_LWIP_VER_1_4_1
+#else
+	uint32_t prio_value = TCP_PRIO_MAX - 2;
+#endif
 	cnt = cmd_sscanf(cmd, "ser=%d.%d.%d.%d port=%d udp=%d",
 	                 &ser_ip[0], &ser_ip[1], &ser_ip[2], &ser_ip[3], &ser_port,
 	                 &cli_udp_flag);
@@ -1047,6 +1357,12 @@ static enum cmd_status cmd_wlan_client_start(char *cmd)
 		             0, (struct sockaddr *)&ser_addr, ser_addr_len);
 	} else {
 		printf("try to connect %s:%d...\n", str_ip_addr, ser_port);
+#ifdef __CONFIG_LWIP_VER_1_4_1
+#else
+		printf("set tcp prio --> %d\n",prio_value);
+		if(lwip_setsockopt(sock_cli, IPPROTO_TCP, TCP_PRIO, &prio_value, sizeof(prio_value)) < 0)
+			printf("set tcp prio failed.\n");
+#endif
 		ret = connect(sock_cli, (struct sockaddr *)&ser_addr, sizeof(struct sockaddr));
 		if (ret < 0)
 			printf("Connect failed! ret = %d\n", ret);
@@ -1174,18 +1490,22 @@ static enum cmd_status cmd_wlan_client_stop(char *cmd)
 static enum cmd_status cmd_wlan_set_p2p_server(char *cmd)
 {
 	int ret, cnt, i;
-	int mac[6];
 	int ser_num, enable;
 	int udp_flag = 0;
+	uint8_t eth_ret[6];
+#ifdef __CONFIG_LWIP_VER_1_4_1
+	ip_addr_t da;
+#else
+	ip4_addr_t da;
+#endif
 	wlan_ext_p2p_svr_set_t svr;
 	struct sockaddr_in local_addr;
 	socklen_t len = sizeof(struct sockaddr);
 	struct netif *nif;
 
-	cnt = cmd_sscanf(cmd, "s=%d e=%d udp=%d mac=%x:%x:%x:%x:%x:%x",
-	                 &ser_num, &enable, &udp_flag,
-	                 &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
-	if (cnt != 9) {
+	cnt = cmd_sscanf(cmd, "s=%d e=%d udp=%d",
+	                 &ser_num, &enable, &udp_flag);
+	if (cnt != 3) {
 		CMD_ERR("cnt %d\n", cnt);
 		return CMD_STATUS_INVALID_ARG;
 	}
@@ -1208,18 +1528,31 @@ static enum cmd_status cmd_wlan_set_p2p_server(char *cmd)
 	for (i = 0; i < 4; i++) {
 		svr.P2PServerCfgs[ser_num].DstIPv4Addr[i] = ser_ip[i];
 	}
-	//ret = etharp_find_addr(nif, (const ip4_addr_t *)&(server_addr.sin_addr.s_addr),
-	//                       &ethaddr_ret, (const ip4_addr_t **)&ipaddr_ret);
+//get mac of server from ip of server
+	da.addr = (ser_ip[0] << 0) +
+			  (ser_ip[1] << 8) +
+			  (ser_ip[2] << 16) +
+			  (ser_ip[3] << 24);
+#ifdef __CONFIG_LWIP_VER_1_4_1
+	if (etharp_get_mac_from_ip((ip_addr_t *)&(da.addr), (struct eth_addr *)eth_ret))
+#else
+	if (etharp_get_mac_from_ip((ip4_addr_t *)&(da.addr), (struct eth_addr *)eth_ret))
+#endif
+		CMD_LOG(1, "server ip : %d.%d.%d.%d - get mac : %02X:%02X:%02X:%02X:%02X:%02X\n",
+			ser_ip[0], ser_ip[1], ser_ip[2], ser_ip[3],
+			eth_ret[0], eth_ret[1], eth_ret[2], eth_ret[3], eth_ret[4], eth_ret[5]);
+	else
+		CMD_LOG(1, "mac not found!!\n");
 	for (i = 0; i < 6; i++) {
-		svr.P2PServerCfgs[ser_num].DstMacAddr[i] = mac[i];
+		svr.P2PServerCfgs[ser_num].DstMacAddr[i] = eth_ret[i];
 	}
+//end
 	svr.P2PServerCfgs[ser_num].TcpSeqInit = getsockack(sock_cli);
 	svr.P2PServerCfgs[ser_num].TcpAckInit = getsockseq(sock_cli);
 	svr.P2PServerCfgs[ser_num].IPIdInit = 1;
 	svr.P2PServerCfgs[ser_num].Enable = enable;
 	svr.P2PServerCfgs[ser_num].TcpOrUdp = udp_flag?0x02:0x01;
 	ret = wlan_ext_request(nif, WLAN_EXT_CMD_SET_P2P_SVR, (int)(&svr));
-
 
 	if (ret == -2) {
 		CMD_ERR("%s: command '%s' invalid arg\n", __func__, cmd);
@@ -1274,7 +1607,7 @@ static enum cmd_status cmd_wlan_set_p2p_wkpacket(char *cmd)
 
 static enum cmd_status cmd_wlan_set_p2p_wakeupip(char *cmd)
 {
-	int ret, cnt, i;
+	int ret, cnt, i, j;
 	int ser_num, enable, ip[4];
 	wlan_ext_p2p_wkp_param_set_t wkp_param;
 
@@ -1293,6 +1626,13 @@ static enum cmd_status cmd_wlan_set_p2p_wakeupip(char *cmd)
 	wkp_param.Enable = enable;
 	for (i = 0; i < 4; i++) {
 		wkp_param.P2PIpv4FilterCfgs[ser_num].Ipv4Filter[i] = ip[i];
+	}
+	for (i = 0; i < IPC_P2P_IPV4_FILTER_NUM_MAX; i++) {
+		if ( wkp_param.P2PIpv4FilterCfgs[i].Ipv4Filter[0] + wkp_param.P2PIpv4FilterCfgs[i].Ipv4Filter[1] + \
+		wkp_param.P2PIpv4FilterCfgs[i].Ipv4Filter[2] + wkp_param.P2PIpv4FilterCfgs[i].Ipv4Filter[3] == 0) {
+			for (j = 0; j < 4; j++)
+				wkp_param.P2PIpv4FilterCfgs[i].Ipv4Filter[j] = 0xff;
+		}
 	}
 	ret = wlan_ext_request(CMD_WLAN_NETIF, WLAN_EXT_CMD_SET_P2P_WKP_CFG, (int)(&wkp_param));
 
@@ -2676,11 +3016,21 @@ static const struct cmd_data g_wlan_cmds[] = {
 	{ "get_edca_param",         cmd_wlan_get_edca_param },
 	{ "get_reason_code",        cmd_wlan_get_stats_code },
 	{ "set_bss_loss_thold",     cmd_wlan_set_bss_loss_thold },
+	{ "arp_reply_keep_alive",   cmd_wlan_arp_reply_keep_alive },
+	{ "set_hidden_ap",          cmd_wlan_set_hidden_ap},
+	{ "set_bcn_freq_offs_time", cmd_wlan_set_bcn_freq_offs_time },
 	{ "set_bcn_rx_11b_only",    cmd_wlan_set_bcn_rx_11b_only },
 	{ "set_pre_rx_bcn",         cmd_wlan_set_pre_rx_bcn },
+	{ "set_stay_awake_tmo",     cmd_wlan_set_stay_awake_tmo },
 	{ "set_auto_power",         cmd_wlan_set_auto_power },
 	{ "set_lp_param",           cmd_wlan_set_low_power_param },
 	{ "bcn_lost_comp",          cmd_wlan_set_bcn_lost_comp },
+	{ "set_auth_tmo_and_tries", cmd_wlan_set_auth_tmo_and_tries },
+	{ "set_assoc_tmo_and_tries", cmd_wlan_set_assoc_tmo_and_tries },
+	{ "set_chk_bcn_without_data", cmd_wlan_set_chk_bcn_without_data },
+	{ "set_bcn_tim_no_data_tmo",  cmd_wlan_set_bcn_tim_no_data_tmo },
+	{ "set_filter_type",        cmd_wlan_set_filter_type },
+	{ "set_mixrate",            cmd_wlan_set_mixrate },
 #ifdef __CONFIG_WLAN_STA_LP
 	{ "set_auto_scan",          cmd_wlan_set_auto_scan },
 	{ "get_ap_mac",             cmd_wlan_get_ap_mac },
@@ -2722,6 +3072,7 @@ static const struct cmd_data g_wlan_cmds[] = {
 	{ "set_rcv_cb",             cmd_wlan_set_rcv_cb },
 	{ "set_even_ie",            cmd_wlan_set_even_ie },
 #endif
+	{ "set_fast_join",          cmd_wlan_set_fast_join },
 	{ "help",                   cmd_wlan_help_exec },
 };
 

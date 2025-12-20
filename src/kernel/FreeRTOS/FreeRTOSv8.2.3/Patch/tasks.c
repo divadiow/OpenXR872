@@ -481,6 +481,11 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 					configASSERT( xNextTaskUnblockTime >= xTickCount );
 					xExpectedIdleTime = prvGetExpectedIdleTime();
 
+					/* Define the following macro to set xExpectedIdleTime to 0
+					if the application does not want
+					portSUPPRESS_TICKS_AND_SLEEP() to be called. */
+					configPRE_SUPPRESS_TICKS_AND_SLEEP_PROCESSING( xExpectedIdleTime );
+
 					if( xExpectedIdleTime >= configEXPECTED_IDLE_TIME_BEFORE_SLEEP )
 					{
 						traceLOW_POWER_IDLE_BEGIN();
@@ -510,3 +515,17 @@ __weak void vApplicationIdleHook(void)
 }
 /*-----------------------------------------------------------*/
 #endif
+
+BaseType_t xTaskAddTick(const TickType_t xTicksToAdd)
+{
+	TickType_t tick;
+
+	taskENTER_CRITICAL();
+	tick = xTicksToAdd;
+	while (tick--) {
+		xTaskIncrementTick();
+	}
+	taskEXIT_CRITICAL();
+	return pdTRUE;
+}
+

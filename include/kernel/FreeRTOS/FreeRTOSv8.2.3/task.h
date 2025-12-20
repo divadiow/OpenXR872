@@ -2032,6 +2032,11 @@ eSleepModeStatus eTaskConfirmSleepModeStatus( void ) PRIVILEGED_FUNCTION;
  */
 void *pvTaskIncrementMutexHeldCount( void ) PRIVILEGED_FUNCTION;
 
+/*
+ * Compensate freertos system tick
+ */
+BaseType_t xTaskAddTick( const TickType_t xTicksToAdd );
+
 #ifdef __cplusplus
 }
 #endif

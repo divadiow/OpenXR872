@@ -983,28 +983,56 @@ int psramc_suspend(struct soc_device *dev, enum suspend_state_t state)
 		break;
 	case PM_MODE_STANDBY:
 	case PM_MODE_HIBERNATION:
-		HAL_NVIC_DisableIRQ(PSRAMC_IRQn);
-		HAL_NVIC_SetIRQHandler(PSRAMC_IRQn, 0);
-		HAL_CCM_PSRAMC_DisableMClock();
-		HAL_CCM_BusDisablePeriphClock(CCM_BUS_PERIPH_BIT_PSRAM_CTRL);
-		HAL_CCM_BusForcePeriphReset(CCM_BUS_PERIPH_BIT_PSRAM_CTRL);
-		HAL_SemaphoreDeinit(&ctrl->dmaSem);
-		HAL_SemaphoreDeinit(&ctrl->lock);
-		HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_5, GPIO_PIN_HIGH);
-		HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_6, GPIO_PIN_HIGH);
-		HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_7, GPIO_PIN_LOW);
-		param.mode = GPIOx_Pn_F1_OUTPUT;
-		param.driving = GPIO_DRIVING_LEVEL_3;
-		param.pull = GPIO_PULL_UP;
-		HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_5, &param);/* CE#  */
-		HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_5, GPIO_PIN_HIGH);
-		param.pull = GPIO_PULL_UP;
-		HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_6, &param);/* CLK# */
-		HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_6, GPIO_PIN_HIGH);
-		param.pull = GPIO_PULL_DOWN;
-		HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_7, &param);/* CLK   */
-		HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_7, GPIO_PIN_LOW);
-		break;
+		switch (ctrl->p_type) {
+		case PSRAM_CHIP_OPI_APS32:
+			HAL_NVIC_DisableIRQ(PSRAMC_IRQn);
+			HAL_NVIC_SetIRQHandler(PSRAMC_IRQn, 0);
+			HAL_CCM_PSRAMC_DisableMClock();
+			HAL_CCM_BusDisablePeriphClock(CCM_BUS_PERIPH_BIT_PSRAM_CTRL);
+			HAL_CCM_BusForcePeriphReset(CCM_BUS_PERIPH_BIT_PSRAM_CTRL);
+			HAL_SemaphoreDeinit(&ctrl->dmaSem);
+			HAL_SemaphoreDeinit(&ctrl->lock);
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_5, GPIO_PIN_HIGH);
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_6, GPIO_PIN_HIGH);
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_7, GPIO_PIN_LOW);
+			param.mode = GPIOx_Pn_F1_OUTPUT;
+			param.driving = GPIO_DRIVING_LEVEL_3;
+			param.pull = GPIO_PULL_UP;
+			HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_5, &param);/* CE#  */
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_5, GPIO_PIN_HIGH);
+			param.pull = GPIO_PULL_UP;
+			HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_6, &param);/* CLK# */
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_6, GPIO_PIN_HIGH);
+			param.pull = GPIO_PULL_DOWN;
+			HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_7, &param);/* CLK   */
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_7, GPIO_PIN_LOW);
+			break;
+		case PSRAM_CHIP_OPI_APS64:
+			HAL_NVIC_DisableIRQ(PSRAMC_IRQn);
+			HAL_NVIC_SetIRQHandler(PSRAMC_IRQn, 0);
+			HAL_CCM_PSRAMC_DisableMClock();
+			HAL_CCM_BusDisablePeriphClock(CCM_BUS_PERIPH_BIT_PSRAM_CTRL);
+			HAL_CCM_BusForcePeriphReset(CCM_BUS_PERIPH_BIT_PSRAM_CTRL);
+			HAL_SemaphoreDeinit(&ctrl->dmaSem);
+			HAL_SemaphoreDeinit(&ctrl->lock);
+
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_7, GPIO_PIN_HIGH);
+			param.mode = GPIOx_Pn_F1_OUTPUT;
+			param.driving = GPIO_DRIVING_LEVEL_3;
+			param.pull = GPIO_PULL_UP;
+			HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_7, &param);/* CE#  */
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_7, GPIO_PIN_HIGH);
+
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_5, GPIO_PIN_LOW);
+			param.mode = GPIOx_Pn_F1_OUTPUT;
+			param.driving = GPIO_DRIVING_LEVEL_3;
+			param.pull = GPIO_PULL_DOWN;
+			HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_5, &param);/* CLK  */
+			HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_5, GPIO_PIN_LOW);
+			break;
+		default:
+			break;
+		}
 	default:
 		break;
 	}
@@ -1014,11 +1042,19 @@ int psramc_suspend(struct soc_device *dev, enum suspend_state_t state)
 int psramc_resume(struct soc_device *dev, enum suspend_state_t state)
 {
 	struct psram_ctrl *ctrl = dev->platform_data;
+	GPIO_InitParam param;
 	switch (state) {
 	case PM_MODE_SLEEP:
 		break;
 	case PM_MODE_STANDBY:
 	case PM_MODE_HIBERNATION:
+		HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_7, GPIO_PIN_LOW);
+		param.mode = GPIOx_Pn_F1_OUTPUT;
+		param.driving = GPIO_DRIVING_LEVEL_3;
+		param.pull = GPIO_PULL_DOWN;
+		HAL_GPIO_Init(GPIO_PORT_C, GPIO_PIN_7, &param);/* CE#  */
+		HAL_GPIO_WritePin(GPIO_PORT_C, GPIO_PIN_7, GPIO_PIN_LOW);
+		HAL_UDelay(250);
 		HAL_PsramCtrl_Init(ctrl, &ctrl->pm_sbus_cfg);
 		break;
 	default:

@@ -8,7 +8,11 @@ MEMORY
 #if (defined(__CONFIG_CHIP_XR872))
     RAM (rwx)   : ORIGIN = 0x00201000, LENGTH = 284K
 #elif (defined(__CONFIG_CHIP_XR808))
+#if (defined(__CONFIG_XR808_SUB_TYPE_ST))
+    RAM (rwx)   : ORIGIN = 0x00201000, LENGTH = 284K
+#else
     RAM (rwx)   : ORIGIN = 0x00201000, LENGTH = 252K
+#endif
 #endif
 
 #if (defined(__CONFIG_XIP))

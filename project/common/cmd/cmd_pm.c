@@ -30,6 +30,7 @@
 #include "cmd_util.h"
 #include "cmd_pm.h"
 #include "pm/pm.h"
+#include "pm/pm_idle_suspend.h"
 #include "driver/chip/hal_wakeup.h"
 #include "driver/chip/hal_prcm.h"
 #include "driver/hal_board.h"
@@ -215,6 +216,40 @@ static enum cmd_status cmd_pm_net_prepare_exec(char *cmd)
 }
 #endif
 
+#ifdef CONFIG_PM_IDLE_SUSPEND
+static enum cmd_status cmd_pm_idle_param_exec(char *cmd)
+{
+	int32_t cnt;
+	struct pis_param param;
+
+	cnt = cmd_sscanf(cmd, "s=%d c=%d", &param.suspend_threshold, &param.compensate_threshold);
+	if (cnt != 2 || pm_idle_suspend_set_param(&param)) {
+		CMD_ERR("err cmd:%s, expect: s=<Suspend_Threshold> c=<Compensate_Threshold>", cmd);
+		return CMD_STATUS_INVALID_ARG;
+	}
+	return CMD_STATUS_OK;
+}
+
+static enum cmd_status cmd_pm_idle_policy_exec(char *cmd)
+{
+	int32_t cnt;
+	uint32_t policy;
+	uint32_t time;
+
+	cnt = cmd_sscanf(cmd, "p=%d t=%d", &policy, &time);
+	if (cnt == 1 && (policy == PIS_POLICY_NO_SUSPEND || policy == PIS_POLICY_SUSPEND_BY_SYS)) {
+		pm_idle_suspend_set_policy(policy);
+		return CMD_STATUS_OK;
+	} else if (cnt == 2 && policy == PIS_POLICY_SUSPEND_BY_USER) {
+		pm_idle_suspend_set_policy(policy);
+		pm_idle_suspend_set_period(time);
+		return CMD_STATUS_OK;
+	}
+	CMD_ERR("err cmd:%s, expect: p=<Idle_Policy> t=<Idle_Time Only for PIS_POLICY_SUSPEND_BY_USER>", cmd);
+	return CMD_STATUS_INVALID_ARG;
+}
+#endif
+
 #if CMD_DESCRIBE
 #define pm_config_help_info \
 "pm config l=<Test_Level> d=<Delay_ms> u=<Buffer_len>\n"\
@@ -245,6 +280,9 @@ static enum cmd_status cmd_pm_net_prepare_exec(char *cmd)
 #define pm_standby_help_info "enter standby mode"
 #define pm_hb_help_info "enter hibernation mode"
 #define pm_np_help_info "pm net prepare"
+#define pm_idle_param_help_info "set pm idle param"
+#define pm_idle_policy_help_info "set pm idle policy"
+
 #endif
 
 static enum cmd_status cmd_pm_help_exec(char *cmd);
@@ -260,6 +298,12 @@ static const struct cmd_data g_pm_cmds[] = {
 	{ "sleep",       cmd_pm_sleep_exec,       CMD_DESC(pm_sleep_help_info) },
 	{ "standby",     cmd_pm_standby_exec,     CMD_DESC(pm_standby_help_info) },
 	{ "hibernation", cmd_pm_hibernation_exec, CMD_DESC(pm_hb_help_info) },
+
+#ifdef CONFIG_PM_IDLE_SUSPEND
+	{ "idle_param",  cmd_pm_idle_param_exec,  CMD_DESC(pm_idle_param_help_info)},
+	{ "idle_policy", cmd_pm_idle_policy_exec,  CMD_DESC(pm_idle_policy_help_info)},
+#endif
+
 #if PRJCONF_NET_EN
 	{ "net_prepare", cmd_pm_net_prepare_exec, CMD_DESC(pm_np_help_info) },
 #endif

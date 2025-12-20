@@ -43,7 +43,23 @@
 #include "driver/chip/hal_snd_card.h"
 #include "audio/manager/audio_manager.h"
 
-#define USER_AGENT "Mozilla/5.0 (FreeRTOS; OS 8.2.3) Xradio Xradio/1.0"
+// #define CEDARX_SUPPORT_ICY
+// #define CEDARX_UPDATE_HTTPS
+static struct KeyValuePairS cedarx_http_header[] = {
+	{
+		"User-Agent", "Mozilla/5.0 (FreeRTOS; OS 8.2.3) Xradio Xradio/1.0",
+	},
+#ifdef CEDARX_SUPPORT_ICY
+	{
+		"Icy-MetaData", "0",
+	},
+#endif
+#ifdef CEDARX_UPDATE_HTTPS
+	{
+		"upgrade-insecure-requests", "1",
+	},
+#endif
+};
 
 extern SoundCtrl *SoundDeviceCreate();
 
@@ -234,11 +250,14 @@ static enum cmd_status cmd_cedarx_create_exec(char *cmd)
 	SoundCtrl *sound = SoundDeviceCreate();
 	XPlayerSetAudioSink(demoPlayer->mAwPlayer, (void *)sound);
 
-	demoPlayer->pHeaders = malloc(sizeof(CdxKeyedVectorT) + 1 * sizeof(KeyValuePairT));
+	int header_count = sizeof(cedarx_http_header) / sizeof(struct KeyValuePairS);
+	demoPlayer->pHeaders = malloc(sizeof(CdxKeyedVectorT) + header_count * sizeof(KeyValuePairT));
 	if (demoPlayer->pHeaders) {
-		demoPlayer->pHeaders->size = 1;
-		demoPlayer->pHeaders->item[0].key = "User-Agent";
-		demoPlayer->pHeaders->item[0].val = USER_AGENT;
+		demoPlayer->pHeaders->size = header_count;
+		for (int i = 0; i < demoPlayer->pHeaders->size; i++) {
+			demoPlayer->pHeaders->item[i].key = cedarx_http_header[i].key;
+			demoPlayer->pHeaders->item[i].val = cedarx_http_header[i].val;
+		}
 	}
 
 	return CMD_STATUS_OK;

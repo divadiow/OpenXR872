@@ -125,6 +125,12 @@ void OS_MSleep(OS_Time_t msec);
  */
 uint32_t OS_Rand32(void);
 
+/**
+ * @brief Add ticks to systick
+ * @return OS_Status
+ */
+OS_Status OS_AddTicks(const OS_Time_t xTicksToAdd);
+
 #ifdef __cplusplus
 }
 #endif

@@ -65,7 +65,7 @@ extern "C" {
 
 //#define CONFIG_SDC_EXCLUSIVE_HOST
 #define CONFIG_SDC_OS_USED
-#ifdef CONFIG_PM
+#if (defined(CONFIG_PM) || defined(__CONFIG_ROM))
 #define CONFIG_SD_PM
 #endif
 
